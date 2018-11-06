@@ -5,10 +5,19 @@ import csv
 import pickle
 import os
 
+'''List of years for MOD13Q1 only
 TRAIN_LIST_YEARS_DEFAULT = [2002, 2007, 2009, 2010, 2014, 
                             2005, 2003, 2015, 2011]
 VAL_LIST_YEARS_DEFAULT = [2001, 2006, 2016, 2013]
 TEST_LIST_YEARS_DEFAULT = [2008, 2017, 2012, 2004]
+'''
+
+# List of year for combined MOD13Q1 and MYD13Q1
+TRAIN_LIST_YEARS_DEFAULT = [2011, 2007, 2009, 2010, 2014,
+                            2005, 2003, 2015, 2012]
+VAL_LIST_YEARS_DEFAULT = [2006, 2016, 2013]
+TEST_LIST_YEARS_DEFAULT = [2008, 2017, 2004]
+
 
 def get_list_years_default(data_type):
     if data_type == 'train':
@@ -401,9 +410,13 @@ def scale_data(data, min=-1000, max=10000, range_min=0, range_max=1):
     return np.interp(data, (min, max), (range_min, range_max))
 
 
-def scale_data(data, range=(0,1)):
-    return np.interp(data, (np.min(data), np.max(data)), range)
+def scale_data(data, original_range=(-2000,10000), range=(-1.0,1.0)):
+    return np.interp(data, original_range, range)
 
+def scale_normalized_data(normalized_data, range=(-1.0,1.0)):
+    return np.interp(normalized_data, 
+                     (np.min(normalized_data), np.max(normalized_data)),
+                     range)
 
 def scale_data_with_scaler(data, scaler):
     """Scale data to [0, 1].
