@@ -3,11 +3,10 @@ import os
 import rasterio as rio
 from scipy.ndimage import measurements
 
-WATER_THRESHOLD = (-2000, 1000)
-CLOUD_THRESHOLD = (2000, 5000)
+WATER_THRESHOLD = {'NDVI': (-2000, 1000)}
 
-def mask_cloud_and_water(img_dir, band, 
-                         offset=WATER_THRESHOLD):
+def mask_cloud_and_water(img_dir, band='NDVI'):
+    offset = WATER_THRESHOLD[band]
     list_imgs = os.listdir(img_dir)
     band_filename = list(filter(lambda x: band in x, list_imgs))[0]
     band_filename = os.path.join(img_dir, band_filename)
@@ -23,6 +22,17 @@ def mask_cloud_and_water(img_dir, band,
         mask[np.where((offset[0]<=img) & (img<=offset[1]))] = 1
         mask[np.where(quality1 >= 2)] = -1
         return mask 
+
+
+def mask_lake_img(img, band='NDVI'):
+    offset = WATER_THRESHOLD[band]
+    water_mask = np.where(((offset[0]<=img) & (img<=offset[1])), 1, 0)
+    visited, label = measurements.label(water_mask)
+    area = measurements.sum(water_mask, visited,
+                            index = np.arange(label + 1))
+    largest_element = np.argmax(area)
+    return np.where(visited==largest_element, 1, 0)
+
 
     """
     def mask_water(img, offset):

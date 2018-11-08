@@ -9,6 +9,9 @@ from modis_utils.model.core import create_model_with_tensorflow
 from modis_utils.misc import get_data, scale_data, restore_data
 from modis_utils.misc import get_cache_file_path
 from modis_utils.misc import scale_normalized_data
+from modis_utils.preprocessing.image_processing import mask_lake_img 
+
+ORIGINAL_RANGE = {'NDVI': (-2000, 10000)}
 
 def create_dir_prefix(time_steps, filters, kernel_size, 
                       n_hidden_layers, epochs=None):
@@ -316,4 +319,13 @@ def test(reservoir_index, test_index, data_dir, used_band, time_steps,
             f.write('{:02} - {:04f}'.format(test_index, metric))
             f.write('\n')
         f.close()
+    return groundtruth, predict, mask[test_index]
 
+
+def to_binary_scale_img(scale_img,
+                        used_band='NDVI',
+                        range=(-1.0, 1.0)):
+    original_range = ORIGINAL_RANGE[used_band]
+    a = (scale_img - range[0])/(range[1] - range[0])
+    a = a*(original_range[1] - original_range[0]) + original_range[0]
+    return mask_lake_img(a, used_band)
