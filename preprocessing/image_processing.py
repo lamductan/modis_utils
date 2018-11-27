@@ -3,7 +3,7 @@ import os
 import rasterio as rio
 from scipy.ndimage import measurements
 
-WATER_THRESHOLD = {'NDVI': (-2000, 1000)}
+WATER_THRESHOLD = {'NDVI': (-3000, 0)}
 
 def mask_cloud_and_water(img_dir, band='NDVI'):
     offset = WATER_THRESHOLD[band]
@@ -18,9 +18,9 @@ def mask_cloud_and_water(img_dir, band='NDVI'):
         quality = quality_src.read(1)
         quality1 = np.mod(quality, 4)
        
-        mask = np.zeros_like(img)
+        mask = np.ones_like(img)*-1
         mask[np.where((offset[0]<=img) & (img<=offset[1]))] = 1
-        mask[np.where(quality1 >= 2)] = -1
+        mask[np.where(quality1 >= 2)] = 0
         return mask 
 
 
