@@ -747,13 +747,13 @@ def get_data_merged_from_paths(data_paths, target_path, mask_path):
 
 
 def get_target_test(target_file_path, which):
-    target_paths = _get_target_mask_path(target_file)
+    target_paths = _get_target_mask_path(target_file_path)
     target_path = target_paths[which]
     return restore_data(target_path)
 
 
 def get_data_test(data_file_path, which):
-    data_paths_list = _get_data_path(data_file)
+    data_paths_list = _get_data_path(data_file_path)
     data_paths = data_paths_list[which]
     list_data = []
     for path in data_paths:
