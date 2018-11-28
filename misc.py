@@ -295,10 +295,7 @@ def _load_data(data_file, reduce_size=None):
     for data_path_list in data_paths:
         currentX_ = []
         for fl in data_path_list:
-            if fl[-4:] != '.dat':
-                img = get_im(fl, reduce_size)
-            else:
-                img = restore_data(fl)
+            img = restore_data(fl)
             currentX_.append(img)
         X_.append(currentX_)
     return X_
@@ -747,3 +744,18 @@ def get_data_merged_from_paths(data_paths, target_path, mask_path):
     data_merged = np.expand_dims(data_merged, axis=-1)
     del list_data
     return data_merged
+
+
+def get_target_test(target_file_path, which):
+    target_paths = _get_target_mask_path(target_file)
+    target_path = target_paths[which]
+    return restore_data(target_path)
+
+
+def get_data_test(data_file_path, which):
+    data_paths_list = _get_data_path(data_file)
+    data_paths = data_paths_list[which]
+    list_data = []
+    for path in data_paths:
+        list_data.append(np.expand_dims(restore_data(path), axis=0))
+    return np.concatenate(list_data, axis=0)

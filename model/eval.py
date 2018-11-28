@@ -9,6 +9,7 @@ from modis_utils.model.core import create_model_with_tensorflow
 from modis_utils.misc import get_data, scale_data, restore_data
 from modis_utils.misc import get_cache_file_path
 from modis_utils.misc import scale_normalized_data
+from modis_utils.misc import get_data_test, get_target_test
 from modis_utils.preprocessing.image_processing import mask_lake_img 
 
 ORIGINAL_RANGE = {'NDVI': (-2000, 10000)}
@@ -40,6 +41,47 @@ def predict_and_visualize(data, target, model,
 
     target_example = target[which, :, :, 0]
     pred = model.predict(data[which][np.newaxis, :, :, :, :])
+    del model
+
+    ax_groundtruth = plt.subplot(G[1, :time_steps//2])
+    ax_groundtruth.imshow(target_example)
+    ax_groundtruth.set_title('groundtruth')
+    
+    ax_pred = plt.subplot(G[1, time_steps//2:2*(time_steps//2)])
+    ax_pred.imshow(pred[0, :, :, 0])
+    ax_pred.set_title('predict')
+
+    if result_dir is not None:
+        #eval = model.evaluate(np.expand_dims(data[which], axis=0), 
+        #                      np.expand_dims(target[which], axis=0))
+        try:
+            os.makedirs(result_dir)
+        except:
+            pass
+
+        #with open(os.path.join(result_dir, 'log.txt'), 'a') as w:
+        #    w.write('{},{}'.format(eval[0], eval[1]))
+        #    w.write('\n')
+
+        plt.savefig(os.path.join(result_dir, '{}.png'.format(which))) 
+
+    return target_example, pred[0, :, :, 0]
+
+
+def predict_and_visualize_by_data_file(data_file_path, target_file_path,
+                                       model, which=0, result_dir=None):
+    example = get_data_test(data_file_path, which)
+    target_example = get_target_test(target_file_path, which)
+    
+    time_steps = example.shape[0]
+    plt.figure(figsize=(10, 10))
+    G = gridspec.GridSpec(2, time_steps)
+    
+    for i, img in enumerate(example):
+        axe = plt.subplot(G[0, i])
+        axe.imshow(img)
+
+    pred = model.predict(example[np.newaxis, :, :, :, np.newaxis])
     del model
 
     ax_groundtruth = plt.subplot(G[1, :time_steps//2])
