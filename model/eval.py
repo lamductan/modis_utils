@@ -10,6 +10,7 @@ from modis_utils.misc import get_data, scale_data, restore_data
 from modis_utils.misc import get_cache_file_path
 from modis_utils.misc import scale_normalized_data
 from modis_utils.misc import get_data_test, get_target_test
+from modis_utils.misc import scale_normalized_data
 from modis_utils.preprocessing.image_processing import mask_lake_img 
 
 ORIGINAL_RANGE = {'NDVI': (-2000, 10000)}
@@ -69,9 +70,11 @@ def predict_and_visualize(data, target, model,
 
 
 def predict_and_visualize_by_data_file(data_file_path, target_file_path,
-                                       model, which=0, result_dir=None):
+                                       model, which=0, result_dir=None,
+                                       groundtruth_range=(-1,1)):
     example = get_data_test(data_file_path, which)
     target_example = get_target_test(target_file_path, which)
+    target_example = scale_normalized_data(target_example, groundtruth_range)
     
     time_steps = example.shape[0]
     plt.figure(figsize=(10, 10))

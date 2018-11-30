@@ -741,7 +741,6 @@ def get_data_merged_from_paths(data_paths, target_path, mask_path):
     list_data.append(np.expand_dims(restore_data(mask_path), axis=0))
     data_merged = np.concatenate(list_data, axis=0)
     data_merged = np.expand_dims(data_merged, axis=0)
-    data_merged = np.expand_dims(data_merged, axis=-1)
     del list_data
     return data_merged
 

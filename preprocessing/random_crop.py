@@ -15,6 +15,15 @@ from modis_utils.misc import get_data_augment_merged_dir
 from modis_utils.misc import get_data_paths, get_target_paths, get_mask_paths
 from modis_utils.misc import get_data_merged_from_paths
 
+
+def random_crop_func(x, crop_size=32, random_crop=True):
+    '''x.shape = (n_data, time_step, img_height, img_width, channels) '''
+    h, w = x.shape[2:4]
+    offset_y = np.random.randint(h - crop_size)
+    offset_x = np.random.randint(w - crop_size)
+    return x[:,:, offset_y : offset_y+crop_size, offset_x : offset_x+crop_size, :]
+
+
 def _merge_data_target_mask(data, target, mask):
     target_1 = target.reshape(target.shape[0], 1, target.shape[1], 
                               target.shape[2], target.shape[3])
@@ -32,8 +41,7 @@ def _generate(data_merged, datagen, data_dir, used_reservoir, used_band,
                                            nframes=data_merged.shape[1])
     cnt = 0
     for i in range(n_samples):
-        batch = data_iterator._get_batches_of_transformed_samples(
-                np.arange(data_merged.shape[0]))
+        batch = random_crop_func(data_merged)
         for j in range(batch.shape[0]):
             cur = batch[j]
             data = cur[:-2]
@@ -374,11 +382,8 @@ def _generate_without_cache(data_paths, target_paths, mask_paths,
     for k in range(n_data):
         data_merged = get_data_merged_from_paths(data_paths[k], target_paths[k],
                                                  mask_paths[k])
-        data_iterator = datagen.flow_from_list(x=data_merged,
-                                               nframes=data_merged.shape[1])
         for i in range(n_samples):
-            batch = data_iterator._get_batches_of_transformed_samples(
-                    np.arange(data_merged.shape[0]))
+            batch = random_crop_func(data_merged)
             for j in range(batch.shape[0]):
                 cur = batch[j]
                 data = cur[:-2]
