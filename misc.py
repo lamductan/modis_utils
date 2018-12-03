@@ -241,6 +241,15 @@ def cache_data(data, path):
     file.close()
 
 
+def to_float32(x):
+    if not isinstance(x, tuple):
+        return np.float32(x)
+    b = []
+    for a in x:
+        b.append(to_float32(a))
+    return tuple(b)
+
+
 def restore_data(path):
     """Restore cached data from disk to memory."""
     if path[-4:] != '.dat':
@@ -251,6 +260,7 @@ def restore_data(path):
         file = open(path, 'rb')
         data = pickle.load(file)
         file.close()
+        data = to_float32(data)
     return data
 
 
