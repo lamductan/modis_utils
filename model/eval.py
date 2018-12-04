@@ -12,6 +12,7 @@ from modis_utils.misc import scale_normalized_data
 from modis_utils.misc import get_data_test, get_target_test
 from modis_utils.misc import scale_normalized_data
 from modis_utils.preprocessing.image_processing import mask_lake_img 
+from modis_utils.model.loss_function import mse_with_mask_tf, mse_with_mask
 
 ORIGINAL_RANGE = {'NDVI': (-2000, 10000)}
 
@@ -268,25 +269,6 @@ def visualize(model, input, groundtruth):
     return groundtruth[:,:,0], predict[0,:,:,0]
 
 
-def mse_with_mask_tf(y_true_and_mask, y_pred):
-    y_true, y_mask = tf.split(y_true_and_mask, 2, axis=-1)
-    square_error = (y_true - y_pred)**2
-    tf_mask = tf.where(tf.equal(y_mask, -1),
-                       tf.fill(tf.shape(y_mask), 0),
-                       tf.fill(tf.shape(y_mask), 1))
-    tf_mask = tf.to_float(tf_mask)
-    #return tf.reduce_mean(tf.multiply(tf_mask, square_error))
-    return tf.divide(tf.reduce_sum(tf.multiply(tf_mask, square_error)),
-                     tf.maximum(tf.reduce_sum(tf_mask), 1.0))
-
-
-def mse_with_mask(groundtruth, mask, predict):
-    square_error = ((groundtruth - predict)**2)
-    cloud_mask = np.where(mask == -1, 0.0, 1.0)
-    return np.sum(np.multiply(cloud_mask, square_error))/np.maximum(
-        np.sum(cloud_mask), 1.0)
-
-  
 def histogram(groundtruth, predict, bins=10, range=(0.0, 1.0)):
     groundtruth_hist = np.histogram(groundtruth, bins=bins, 
                                     range=range)
@@ -374,3 +356,60 @@ def to_binary_scale_img(scale_img,
     a = (scale_img - range[0])/(range[1] - range[0])
     a = a*(original_range[1] - original_range[0]) + original_range[0]
     return mask_lake_img(a, used_band)
+
+
+def test_by_data_file(reservoir_index, test_index, data_file_path,
+        target_file_path, mask_file_path, used_band, time_steps,
+        img_col, img_row, model_params_path, weight_path,
+        result_dir_prefix=None):
+    if result_dir_prefix is None:
+        result_dir = None
+    else:
+        result_dir = os.path.join(result_dir_prefix, str(reservoir_index))
+    
+    input_shape = (time_steps, img_col, img_row, 1)
+    model_params_non_gridding, compile_params = restore_data(model_params_path)
+    model_params_non_gridding['input_shape'] = input_shape
+
+    if compile_params['loss'] == 'mse_with_mask_tf':
+        compile_params['loss'] = mse_with_mask_tf
+    else:
+        compile_params['loss'] = 'mse'
+    if compile_params['metrics'] == ['mse_with_mast_tf']:
+        compile_params['metrics'] = [mse_with_mast_tf]
+    else:
+        compile_params['metrics'] = ['mse']
+
+    model_non_gridding = create_model_with_tensorflow(model_params_non_gridding,
+                                                      compile_params)
+    if model_params_non_gridding['output_activation'] == 'tanh':
+        groundtruth_range = (-1.0, 1.0)
+    else:
+        groundtruth_range = (0.0, 1.0)
+
+    model_non_gridding.load_weights(weight_path)
+
+    try:
+        os.makedirs(result_dir)
+    except:
+        pass
+
+    groundtruth, predict = predict_and_visualize_by_data_file(
+        data_file_path=data_file_path,
+        target_file_path=target_file_path,
+        which=test_index,
+        model=model_non_gridding,
+        groundtruth_range=groundtruth_range,
+        result_dir=result_dir)
+
+    mask = get_target_test(mask_file_path, test_index)
+
+    if result_dir is not None:
+        log_path = os.path.join(result_dir, 'log.txt')
+        metric = mse_with_mask(groundtruth, mask, predict)
+        with open(log_path, 'a') as f:
+            f.write('{:03} - {:04f}'.format(test_index, metric))
+            f.write('\n')
+        f.close()
+    return groundtruth, predict, mask
+

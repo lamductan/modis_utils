@@ -21,7 +21,7 @@ def random_crop_func(x, crop_size=32, random_crop=True):
     h, w = x.shape[2:4]
     offset_y = np.random.randint(h - crop_size)
     offset_x = np.random.randint(w - crop_size)
-    return x[:,:, offset_y : offset_y+crop_size, offset_x : offset_x+crop_size, :]
+    return x[:,:, offset_y : offset_y+crop_size, offset_x : offset_x+crop_size]
 
 
 def _merge_data_target_mask(data, target, mask):
