@@ -308,7 +308,7 @@ def test(reservoir_index, test_index, data_dir, used_band, time_steps,
     img_col = test_target.shape[1]
     img_row = test_target.shape[2] 
     input_shape = (time_steps, img_col, img_row, 1)
-    model_params_non_gridding, compile_params = restore_data(model_params_path)
+    model_params_non_gridding, compile_params = restore_data(model_params_path, False)
     model_params_non_gridding['input_shape'] = input_shape
 
     if compile_params['loss'] == 'mse_with_mask_tf':
@@ -368,7 +368,7 @@ def test_by_data_file(reservoir_index, test_index, data_file_path,
         result_dir = os.path.join(result_dir_prefix, str(reservoir_index))
     
     input_shape = (time_steps, img_col, img_row, 1)
-    model_params_non_gridding, compile_params = restore_data(model_params_path)
+    model_params_non_gridding, compile_params = restore_data(model_params_path, False)
     model_params_non_gridding['input_shape'] = input_shape
 
     if compile_params['loss'] == 'mse_with_mask_tf':
