@@ -250,7 +250,7 @@ def to_float32(x):
     return tuple(b)
 
 
-def restore_data(path):
+def restore_data(path, convert_to_float32=True):
     """Restore cached data from disk to memory."""
     if path[-4:] != '.dat':
         return get_im(path)
@@ -260,7 +260,8 @@ def restore_data(path):
         file = open(path, 'rb')
         data = pickle.load(file)
         file.close()
-        data = to_float32(data)
+        if convert_to_float32:
+            data = to_float32(data)
     return data
 
 
