@@ -360,7 +360,7 @@ def to_binary_scale_img(scale_img,
 
 def test_by_data_file(reservoir_index, test_index, data_file_path,
         target_file_path, mask_file_path, used_band, time_steps,
-        img_col, img_row, model_params_path, weight_path,
+        img_col, img_row, model_params_path, weight_path, mask_cloud_loss=False,
         result_dir_prefix=None):
     if result_dir_prefix is None:
         result_dir = None
@@ -404,9 +404,14 @@ def test_by_data_file(reservoir_index, test_index, data_file_path,
 
     mask = get_target_test(mask_file_path, test_index)
 
+    if mask_cloud_loss:
+        mask_cloud = 0
+    else:
+        mask_cloud = 255
+
     if result_dir is not None:
         log_path = os.path.join(result_dir, 'log.txt')
-        metric = mse_with_mask(groundtruth, mask, predict)
+        metric = mse_with_mask(groundtruth, mask, predict, mask_cloud)
         with open(log_path, 'a') as f:
             f.write('{:03} - {:04f}'.format(test_index, metric))
             f.write('\n')
