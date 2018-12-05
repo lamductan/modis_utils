@@ -250,7 +250,7 @@ def to_float32(x):
     return tuple(b)
 
 
-def restore_data(path, convert_to_float32=True):
+def restore_data(path, convert_to_float32=False):
     """Restore cached data from disk to memory."""
     if path[-4:] != '.dat':
         return get_im(path)
