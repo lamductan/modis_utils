@@ -4,6 +4,7 @@ import cv2
 import csv
 import pickle
 import os
+import rasterio as rio
 
 '''List of years for MOD13Q1 only
 TRAIN_LIST_YEARS_DEFAULT = [2002, 2007, 2009, 2010, 2014, 
@@ -61,6 +62,32 @@ def get_data_augment_dir(data_dir, used_reservoir, used_band,
     return os.path.join('data_augment', data_dir, str(crop_size),
                         get_dir_prefix(used_reservoir, used_band, time_steps),
                         data_type)
+
+def get_result_dir(data_dir, used_reservoir, used_band, crop_size,
+                   time_steps, filters, kernel_size, n_hidden_layers,
+                   mask_cloud_loss):
+    return os.path.join('result', data_dir, str(crop_size), str(time_steps),
+			used_band, str(filters), str(kernel_size),
+			str(n_hidden_layers), str(mask_cloud_loss),
+                        str(used_reservoir))
+
+
+def get_predict_dir(data_dir, used_reservoir, used_band, crop_size,
+                    time_steps, filters, kernel_size, n_hidden_layers,
+                    mask_cloud_loss):
+    return os.path.join('predict', data_dir, str(crop_size), str(time_steps),
+			used_band, str(filters), str(kernel_size),
+			str(n_hidden_layers), str(mask_cloud_loss),
+                        str(used_reservoir))
+
+
+def get_predict_mask_dir(data_dir, used_reservoir, used_band, crop_size,
+                        time_steps, filters, kernel_size, n_hidden_layers,
+                        mask_cloud_loss):
+    return os.path.join('predict_mask', data_dir, str(crop_size), str(time_steps),
+			used_band,str(filters), str(kernel_size),
+			str(n_hidden_layers), str(mask_cloud_loss),
+                        str(used_reservoir))
 
 
 def get_data_augment_merged_dir(data_dir, used_band, time_steps,
@@ -769,3 +796,26 @@ def get_data_test(data_file_path, which):
     for path in data_paths:
         list_data.append(np.expand_dims(restore_data(path), axis=0))
     return np.concatenate(list_data, axis=0)
+
+
+def get_reservoir_min_max(data_dir, reservoir_index):
+    min_max_path = os.path.join('min_max', data_dir, 'min_max.dat')
+    min_max = restore_data(min_max_path)
+    reservoir_min = min_max[reservoir_index]['min']
+    reservoir_max = min_max[reservoir_index]['max']
+    return reservoir_min, reservoir_max
+
+
+def get_reservoir_mean_std(data_dir, reservoir_index):
+    data_dir = data_dir.strip('/')
+    token = data_dir.split('/')
+    preprocessed_dir = '/'.join(token[:2])
+    modis_product = token[-1]
+    mean_std_path = os.path.join('mean_std', preprocessed_dir, 'change_fill_value', modis_product, 
+                                 'mean_std.dat')
+    mean_std_dict = restore_data(mean_std_path)
+    mean_std_dict_reservoir = mean_std_dict[reservoir_index]
+    mean = mean_std_dict_reservoir['mean']
+    std = mean_std_dict_reservoir['std']
+    return mean, std
+

@@ -343,7 +343,7 @@ def test(reservoir_index, test_index, data_dir, used_band, time_steps,
         log_path = os.path.join(result_dir, 'log.txt')
         metric = mse_with_mask(groundtruth, mask[test_index], predict)
         with open(log_path, 'a') as f:
-            f.write('{:02} - {:04f}'.format(test_index, metric))
+            f.write('{:03},{:04f}'.format(test_index, metric))
             f.write('\n')
         f.close()
     return groundtruth, predict, mask[test_index]
@@ -413,7 +413,7 @@ def test_by_data_file(reservoir_index, test_index, data_file_path,
         log_path = os.path.join(result_dir, 'log.txt')
         metric = mse_with_mask(groundtruth, mask, predict, mask_cloud)
         with open(log_path, 'a') as f:
-            f.write('{:03} - {:04f}'.format(test_index, metric))
+            f.write('{:03},{:04f}'.format(test_index, metric))
             f.write('\n')
         f.close()
     return groundtruth, predict, mask
