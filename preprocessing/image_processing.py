@@ -2,8 +2,17 @@ import numpy as np
 import os
 import rasterio as rio
 from scipy.ndimage import measurements
+from sklearn.cluster import KMeans
 
-WATER_THRESHOLD = {'NDVI': (-3000, 0)}
+from modis_utils.misc import get_buffer
+
+CLOUD_FLAG = 0
+WATER_FLAG = 1
+LAND_WET_FLAG = 2
+LAND_DRY_FLAG = 3
+LABELS = [WATER_FLAG, LAND_WET_FLAG, LAND_DRY_FLAG]
+
+WATER_THRESHOLD = {'NDVI': 1000}
 
 def mask_cloud_and_water(img_dir, band='NDVI'):
     offset = WATER_THRESHOLD[band]
@@ -19,20 +28,42 @@ def mask_cloud_and_water(img_dir, band='NDVI'):
         quality1 = np.mod(quality, 4)
        
         mask = np.ones_like(img)*-1
-        mask[np.where((offset[0]<=img) & (img<=offset[1]))] = 1
-        mask[np.where(quality1 >= 2)] = 0
+        mask[np.where((offset[0]<=img) & (img<=offset[1]))] = WATER_FLAG
+        mask[np.where(quality1 >= 3)] = CLOUD_FLAG
         return mask 
 
 
 def mask_lake_img(img, band='NDVI'):
     offset = WATER_THRESHOLD[band]
-    water_mask = np.where(((offset[0]<=img) & (img<=offset[1])), 1, 0)
+    water_mask = np.where(img < offset, 1, 0)
     visited, label = measurements.label(water_mask)
     area = measurements.sum(water_mask, visited,
                             index = np.arange(label + 1))
     largest_element = np.argmax(area)
     return np.where(visited==largest_element, 1, 0)
+    #return water_mask
 
+def kmeans_mask(img, reservoir_index, quality=None):
+    buffer = get_buffer(reservoir_index)
+    pos = np.where(buffer==1)
+    list_pixels = []
+    for x, y in zip(*pos):
+        list_pixels.append([img[x][y]])
+    list_pixels = np.asarray(list_pixels)
+    kmeans = KMeans(n_clusters=len(LABELS), random_state=0).fit(list_pixels)
+    idx = np.argsort(kmeans.cluster_centers_.sum(axis=1))
+    lut = np.zeros_like(idx)
+    lut[idx] = LABELS 
+    label = lut[kmeans.labels_]
+    mask = np.zeros_like(img)
+    i = 0
+    for x, y in zip(*pos):
+        mask[x][y] = label[i]
+        i += 1
+
+    if quality is not None:
+        mask[np.where(quality > 0)] = CLOUD_FLAG
+    return mask
 
     """
     def mask_water(img, offset):

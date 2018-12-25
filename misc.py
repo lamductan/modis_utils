@@ -95,7 +95,60 @@ def get_data_augment_merged_dir(data_dir, used_band, time_steps,
     return os.path.join('data_augment_merged', data_dir, str(crop_size),
                         str(time_steps), used_band, data_type)
 
+def get_threshold_mask_dir(modis_product, reservoir_index):
+    return os.path.join('threshold_mask', modis_product, str(reservoir_index))
+
+def get_threshold_mask_path(modis_product, reservoir_index, year, day):
+    return os.path.join(get_threshold_mask_dir(
+        modis_product, reservoir_index), '{}{:03}.dat'.format(year, day))
     
+def get_threshold_mask(modis_product, reservoir_index, year, day):
+    path = get_threshold_mask_path(modis_product, reservoir_index, year, day)
+    return restore_data(path)
+
+def get_percentile_path(reservoir_index):
+    return os.path.join('percentile', '{}.dat'.format(reservoir_index))
+
+def get_percentile(reservoir_index):
+    return restore_data(get_percentile_path(reservoir_index))
+
+def get_buffer_path(reservoir_index):
+    return os.path.join('buffer', '{}.dat'.format(reservoir_index))
+
+def get_buffer(reservoir_index):
+    return restore_data(get_buffer_path(reservoir_index))
+
+def get_kmeans_mask_path(data_dir, reservoir_index, year, day):
+    return os.path.join('kmeans_mask', data_dir, str(reservoir_index),
+                        '{}{:03}.dat'.format(year, day))
+
+def get_mask_zone(reservoir_index):
+    return restore_data(os.path.join('mask_zone', '{}.dat'.format(reservoir_index)))
+
+def get_quality_img(modis_product, reservoir_index, year, day):
+    img_dir = os.path.join('raw_data', modis_product, str(reservoir_index),
+                           str(year), '{}{:03}'.format(year, day))
+    list_imgs = os.listdir(img_dir)
+    quality_filename = list(filter(lambda x: 'reliability' in x, list_imgs))[0]
+    quality_filename = os.path.join(img_dir, quality_filename)
+    return restore_data(quality_filename)
+
+def get_mask_dir(modis_product, reservoir_index, year, day):
+    return os.path.join('mask_data', modis_product, str(reservoir_index),
+                        str(year), '{}{:03}'.format(year, day))
+
+def get_mask_path(modis_product, reservoir_index, year, day):
+    return os.path.join(get_mask_dir(modis_product, reservoir_index, year, day),
+                        'masked.dat')
+
+def get_mask(modis_product, reservoir_index, year, day):
+    try:
+        path = get_mask_path(modis_product, reservoir_index, year, day)
+        return restore_data(path) 
+    except:
+        return None
+
+
 def _create_data_file(data_dir,
                       used_reservoir,
                       used_band,
@@ -495,9 +548,12 @@ def find_img_name(data_dir='raw_data/MOD13Q1',
                   day=1, band_find='NIR'):
     dir = os.path.join(data_dir, str(reservoir_index), str(year),
                        str(year) + str(day).zfill(3))
-    list_raster = os.listdir(dir)
-    find = list(filter(lambda x: band_find in x, list_raster))
-    return dir + '/' + find[0]
+    try:
+        list_raster = os.listdir(dir)
+        find = list(filter(lambda x: band_find in x, list_raster))
+        return dir + '/' + find[0]
+    except:
+        return None
 
 
 def find_img_name_1(data_dir='raw_data/MOD13Q1',
@@ -505,9 +561,12 @@ def find_img_name_1(data_dir='raw_data/MOD13Q1',
                     day=1, band_find='NIR'):
     dir = os.path.join(data_dir, str(reservoir_index), str(year),
                        str(year) + str(day).zfill(3))
-    list_raster = os.listdir(dir)
-    find = list(filter(lambda x: band_find in x, list_raster))
-    return find[0]
+    try:
+        list_raster = os.listdir(dir)
+        find = list(filter(lambda x: band_find in x, list_raster))
+        return find[0]
+    except:
+        return None
 
 
 def _create_data_file_continuous_years(data_dir,
