@@ -20,6 +20,14 @@ VAL_LIST_YEARS_DEFAULT = [2012, 2013, 2014]
 TEST_LIST_YEARS_DEFAULT = [2015, 2016, 2017]
 
 
+def to_str(x):
+    if not isinstance(x, list):
+        return str(x)
+    else:
+        b = [str(y) for y in x]
+        return '_'.join(b)
+
+
 def get_list_years_default(data_type):
     if data_type == 'train':
         return TRAIN_LIST_YEARS_DEFAULT
@@ -63,32 +71,39 @@ def get_data_augment_dir(data_dir, used_reservoir, used_band,
                         get_dir_prefix(used_reservoir, used_band, time_steps),
                         data_type)
 
-def get_result_dir(data_dir, used_reservoir, used_band, crop_size,
-                   time_steps, filters, kernel_size, n_hidden_layers,
-                   mask_cloud_loss):
-    return os.path.join('result', data_dir, str(crop_size), str(time_steps),
-			used_band, str(filters), str(kernel_size),
+
+def get_result_dir_suffix(data_dir, used_reservoir, used_band, crop_size,
+                          time_steps, filters, kernel_size, n_hidden_layers,
+                          mask_cloud_loss):
+    return os.path.join(data_dir, str(crop_size), str(time_steps),
+			used_band, to_str(filters), to_str(kernel_size),
 			str(n_hidden_layers), str(mask_cloud_loss),
                         str(used_reservoir))
 
+
+def get_result_dir(data_dir, used_reservoir, used_band, crop_size,
+                   time_steps, filters, kernel_size, n_hidden_layers,
+                   mask_cloud_loss):
+    return os.path.join('result', get_result_dir_suffix(
+        data_dir, used_reservoir, used_band, crop_size, time_steps,
+        filters, kernel_size, n_hidden_layers, mask_cloud_loss))
+ 
 
 def get_predict_dir(data_dir, used_reservoir, used_band, crop_size,
                     time_steps, filters, kernel_size, n_hidden_layers,
                     mask_cloud_loss):
-    return os.path.join('predict', data_dir, str(crop_size), str(time_steps),
-			used_band, str(filters), str(kernel_size),
-			str(n_hidden_layers), str(mask_cloud_loss),
-                        str(used_reservoir))
-
+    return os.path.join('predict', get_result_dir_suffix(
+        data_dir, used_reservoir, used_band, crop_size, time_steps,
+        filters, kernel_size, n_hidden_layers, mask_cloud_loss))
+ 
 
 def get_predict_mask_dir(data_dir, used_reservoir, used_band, crop_size,
                         time_steps, filters, kernel_size, n_hidden_layers,
                         mask_cloud_loss):
-    return os.path.join('predict_mask', data_dir, str(crop_size), str(time_steps),
-			used_band,str(filters), str(kernel_size),
-			str(n_hidden_layers), str(mask_cloud_loss),
-                        str(used_reservoir))
-
+    return os.path.join('predict_mask', get_result_dir_suffix(
+        data_dir, used_reservoir, used_band, crop_size, time_steps,
+        filters, kernel_size, n_hidden_layers, mask_cloud_loss))
+ 
 
 def get_data_augment_merged_dir(data_dir, used_band, time_steps,
                                 data_type='', crop_size=32):
@@ -144,7 +159,7 @@ def get_mask_path(modis_product, reservoir_index, year, day):
 def get_mask(modis_product, reservoir_index, year, day):
     try:
         path = get_mask_path(modis_product, reservoir_index, year, day)
-        return restore_data(path) 
+        return restore_data(path)
     except:
         return None
 
@@ -545,7 +560,7 @@ def scale_data_with_scaler(data, scaler):
 
 def find_img_name(data_dir='raw_data/MOD13Q1',
                   reservoir_index=0, year=2001,
-                  day=1, band_find='NIR'):
+                  day=1, band_find='NDVI'):
     dir = os.path.join(data_dir, str(reservoir_index), str(year),
                        str(year) + str(day).zfill(3))
     try:
@@ -558,7 +573,7 @@ def find_img_name(data_dir='raw_data/MOD13Q1',
 
 def find_img_name_1(data_dir='raw_data/MOD13Q1',
                     reservoir_index=0, year=2001,
-                    day=1, band_find='NIR'):
+                    day=1, band_find='NDVI'):
     dir = os.path.join(data_dir, str(reservoir_index), str(year),
                        str(year) + str(day).zfill(3))
     try:
