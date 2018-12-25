@@ -83,7 +83,7 @@ def load_latest_model(time_steps, filters, kernel_size,
 
 
 # Create model
-def create_model_with_tensorflow(model_params, compile_params):
+def _create_model_with_tensorflow_1(model_params, compile_params):
     input_shape = model_params['input_shape']
     n_hidden_layers = 3
 
@@ -176,8 +176,8 @@ def create_model_with_tensorflow(model_params, compile_params):
     source = tensorflow.keras.Input(
         name='seed', shape=input_shape, dtype=tensorflow.float32)
 
-    convLSTM_layers = [0]*(n_hidden_layers + 1)
-    batchNorm_layers = [0]*(n_hidden_layers + 1)
+    convLSTM_layers = [0]*(n_hidden_layers)
+    batchNorm_layers = [0]*(n_hidden_layers)
  
     convLSTM_layers[0] = ConvLSTM2D(filters=filters, 
                                     kernel_size=kernel_size_tuple,
@@ -205,7 +205,7 @@ def create_model_with_tensorflow(model_params, compile_params):
                                     recurrent_dropout=recurrent_dropout)(source)
     batchNorm_layers[0] = BatchNormalization()(convLSTM_layers[0])
 
-    for i in range(1, n_hidden_layers):
+    for i in range(1, n_hidden_layers - 1):
         convLSTM_layers[i] = ConvLSTM2D(filters=filters, 
                                         kernel_size=kernel_size_tuple,
                                         strides=strides,
@@ -297,8 +297,7 @@ def create_model_with_tensorflow(model_params, compile_params):
 
     return model
 
-
-def create_model_with_tensorflow_without_batchNorm(model_params, compile_params):
+def _create_model_with_tensorflow_2(model_params, compile_params):
     input_shape = model_params['input_shape']
     n_hidden_layers = 3
 
@@ -391,8 +390,10 @@ def create_model_with_tensorflow_without_batchNorm(model_params, compile_params)
     source = tensorflow.keras.Input(
         name='seed', shape=input_shape, dtype=tensorflow.float32)
 
-    convLSTM_layers = [0]*(n_hidden_layers + 1)
-    convLSTM_layers[0] = ConvLSTM2D(filters=filters, 
+    convLSTM_layers = [0]*(n_hidden_layers)
+    batchNorm_layers = [0]*(n_hidden_layers)
+ 
+    convLSTM_layers[0] = ConvLSTM2D(filters=filters[0], 
                                     kernel_size=kernel_size_tuple,
                                     strides=strides,
                                     padding=padding,
@@ -416,9 +417,10 @@ def create_model_with_tensorflow_without_batchNorm(model_params, compile_params)
                                     stateful=stateful,
                                     dropout=dropout,
                                     recurrent_dropout=recurrent_dropout)(source)
+    batchNorm_layers[0] = BatchNormalization()(convLSTM_layers[0])
 
-    for i in range(1, n_hidden_layers):
-        convLSTM_layers[i] = ConvLSTM2D(filters=filters, 
+    for i in range(1, n_hidden_layers - 1):
+        convLSTM_layers[i] = ConvLSTM2D(filters=filters[i], 
                                         kernel_size=kernel_size_tuple,
                                         strides=strides,
                                         padding=padding,
@@ -441,9 +443,11 @@ def create_model_with_tensorflow_without_batchNorm(model_params, compile_params)
                                         go_backwards=go_backwards,
                                         stateful=stateful,
                                         dropout=dropout,
-                                        recurrent_dropout=recurrent_dropout)(convLSTM_layers[i-1])
+                                        recurrent_dropout=recurrent_dropout)(batchNorm_layers[i-1])
 
-    convLSTM_layers[-1] = ConvLSTM2D(filters=filters, 
+        batchNorm_layers[i] = BatchNormalization()(convLSTM_layers[i])
+    
+    convLSTM_layers[-1] = ConvLSTM2D(filters=filters[-1], 
                                     kernel_size=kernel_size_tuple,
                                     strides=strides,
                                     padding=padding,
@@ -466,9 +470,11 @@ def create_model_with_tensorflow_without_batchNorm(model_params, compile_params)
                                     go_backwards=go_backwards,
                                     stateful=stateful,
                                     dropout=dropout,
-                                    recurrent_dropout=recurrent_dropout)(convLSTM_layers[-2])
+                                    recurrent_dropout=recurrent_dropout)(batchNorm_layers[-2])
 
-    predicted_img = Conv2D(filters=1, 
+    batchNorm_layers[-1] = BatchNormalization()(convLSTM_layers[-1])
+
+    predicted_img = Conv2D(filters=1,
                            kernel_size=kernel_size_tuple,
                            strides=strides,
                            activation=output_activation,
@@ -482,7 +488,7 @@ def create_model_with_tensorflow_without_batchNorm(model_params, compile_params)
                            bias_regularizer=bias_regularizer,
                            activity_regularizer=activity_regularizer,
                            kernel_constraint=kernel_constraint,
-                           bias_constraint=bias_constraint)(convLSTM_layers[-1])
+                           bias_constraint=bias_constraint)(batchNorm_layers[-1])
 
     model = tensorflow.keras.Model(inputs=[source], outputs=[predicted_img])
 
@@ -504,3 +510,10 @@ def create_model_with_tensorflow_without_batchNorm(model_params, compile_params)
         metrics=metrics)
 
     return model
+
+
+def create_model_with_tensorflow(model_params, compile_params):
+    if not isinstance(model_params['filters'], list):
+        return _create_model_with_tensorflow_1(model_params, compile_params)
+    else:
+        return _create_model_with_tensorflow_2(model_params, compile_params)
