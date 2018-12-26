@@ -278,7 +278,7 @@ def _create_model_with_tensorflow_1(model_params, compile_params):
                            activity_regularizer=activity_regularizer,
                            kernel_constraint=kernel_constraint,
                            bias_constraint=bias_constraint)(batchNorm_layers[-1])
-    predicted_img = predicted_img.eval()
+    predicted_img = predicted_img.eval(tf.get_default_session())
     predicted_img = scale_data(predicted_img, (-1.0, 1.0), (-0.21, 1.0))
     mask_lake = mask_lake_img(predicted_img)
     mask_lake = tf.convert_to_tensor(mask_lake, np.int)
@@ -495,7 +495,7 @@ def _create_model_with_tensorflow_2(model_params, compile_params):
                            activity_regularizer=activity_regularizer,
                            kernel_constraint=kernel_constraint,
                            bias_constraint=bias_constraint)(batchNorm_layers[-1])
-    predicted_img = predicted_img.eval()
+    predicted_img = predicted_img.eval(tf.get_default_session())
     predicted_img = scale_data(predicted_img, (-1.0, 1.0), (-0.21, 1.0))
     mask_lake = mask_lake_img(predicted_img)
     mask_lake = tf.convert_to_tensor(mask_lake, np.int)
