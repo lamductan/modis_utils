@@ -14,13 +14,17 @@ from modis_utils.misc import get_list_years_default
 from modis_utils.misc import get_data_augment_merged_dir
 from modis_utils.misc import get_data_paths, get_target_paths, get_mask_paths
 from modis_utils.misc import get_data_merged_from_paths
+from modis_utils.misc import get_buffer
 
-
-def random_crop_func(x, crop_size=32, random_crop=True):
+def random_crop_func(x, min_rect, crop_size=32, random_crop=True):
     '''x.shape = (n_data, time_step, img_height, img_width, channels) '''
     h, w = x.shape[2:4]
-    offset_y = np.random.randint(h - crop_size)
-    offset_x = np.random.randint(w - crop_size)
+    xmin, ymin, xmax, ymax = min_rect
+    while True:
+        offset_y = np.random.randint(ymin, ymax + 1)
+        offset_x = np.random.randint(xmin, xmax + 1)
+        if offset_x + crop_size < w and offset_y + crop_size < h:
+            break
     return x[:,:, offset_y : offset_y+crop_size, offset_x : offset_x+crop_size]
 
 
@@ -377,13 +381,16 @@ def _generate_without_cache(data_paths, target_paths, mask_paths,
                             datagen, data_dir, used_reservoir, used_band, time_steps,
                             list_years, data_type, mask_data_dir,
                             n_samples, crop_size):
+    buffer = get_buffer(used_reservoir)
+    pos = np.where(buffer==1)
+    min_rect = (pos[0].min(), pos[1].min(), pos[0].max(), pos[1].max())
     n_data = len(data_paths)
     cnt = 0
     for k in range(n_data):
         data_merged = get_data_merged_from_paths(data_paths[k], target_paths[k],
                                                  mask_paths[k])
         for i in range(n_samples):
-            batch = random_crop_func(data_merged)
+            batch = random_crop_func(data_merged, min_rect)
             for j in range(batch.shape[0]):
                 cur = batch[j]
                 data = cur[:-2]

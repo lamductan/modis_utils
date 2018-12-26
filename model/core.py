@@ -12,6 +12,8 @@ from tensorflow.python.keras.layers import BatchNormalization
 from tensorflow.python.keras.callbacks import EarlyStopping, ModelCheckpoint
 from tensorflow.python.keras import losses
 
+from modis_utils.misc import scale_data
+from modis_utils.preprocessing.image_processing import mask_lake_img
 
 def create_dir_prefix(time_steps, filters, kernel_size, 
                     n_hidden_layers, epochs=None):
@@ -275,8 +277,11 @@ def _create_model_with_tensorflow_1(model_params, compile_params):
                            activity_regularizer=activity_regularizer,
                            kernel_constraint=kernel_constraint,
                            bias_constraint=bias_constraint)(batchNorm_layers[-1])
+    
+    predicted_img = scale_data(predicted_img, (-1.0, 1.0), (-0.21, 1.0))
+    mask_lake = mask_lake_img(predicted_img)
 
-    model = tensorflow.keras.Model(inputs=[source], outputs=[predicted_img])
+    model = tensorflow.keras.Model(inputs=[source], outputs=[mask_lake])
 
     # Compile parameters
     optimizer = tensorflow.keras.optimizers.SGD(lr=1e-4)
@@ -489,8 +494,10 @@ def _create_model_with_tensorflow_2(model_params, compile_params):
                            activity_regularizer=activity_regularizer,
                            kernel_constraint=kernel_constraint,
                            bias_constraint=bias_constraint)(batchNorm_layers[-1])
+    predicted_img = scale_data(predicted_img, (-1.0, 1.0), (-0.21, 1.0))
+    mask_lake = mask_lake_img(predicted_img)
 
-    model = tensorflow.keras.Model(inputs=[source], outputs=[predicted_img])
+    model = tensorflow.keras.Model(inputs=[source], outputs=[mask_lake])
 
     # Compile parameters
     optimizer = tensorflow.keras.optimizers.SGD(lr=1e-4)
