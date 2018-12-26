@@ -177,7 +177,7 @@ def _create_model_with_tensorflow_1(model_params, compile_params):
     kernel_size_tuple = (kernel_size, kernel_size)
 
     source = keras.Input(
-        name='seed', shape=input_shape, dtype=tensorflow.float32)
+        name='seed', shape=input_shape, dtype=tf.float32)
 
     convLSTM_layers = [0]*(n_hidden_layers)
     batchNorm_layers = [0]*(n_hidden_layers)
@@ -394,7 +394,7 @@ def _create_model_with_tensorflow_2(model_params, compile_params):
     kernel_size_tuple = (kernel_size, kernel_size)
 
     source = keras.Input(
-        name='seed', shape=input_shape, dtype=tensorflow.float32)
+        name='seed', shape=input_shape, dtype=tf.float32)
 
     convLSTM_layers = [0]*(n_hidden_layers)
     batchNorm_layers = [0]*(n_hidden_layers)
