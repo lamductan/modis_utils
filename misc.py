@@ -5,6 +5,7 @@ import csv
 import pickle
 import os
 import rasterio as rio
+import tensorflow as tf
 
 '''List of years for MOD13Q1 only
 TRAIN_LIST_YEARS_DEFAULT = [2002, 2007, 2009, 2010, 2014, 
