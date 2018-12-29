@@ -525,18 +525,22 @@ def normalize_data(data, mean=0.0, std=1.0):
         return data - mean
     return (data - mean) / std
 
-
 def scale_data(data, min=-1000, max=10000, range_min=0, range_max=1):
     return np.interp(data, (min, max), (range_min, range_max))
 
-
-def scale_data(data, original_range=(-2000,10000), range=(-1.0,1.0)):
+def scale_data(data, original_range=(-1.0,1.0), range=(-0.21,1.0)):
     return np.interp(data, original_range, range)
 
 def scale_normalized_data(normalized_data, range=(-1.0,1.0)):
     return np.interp(normalized_data, 
                      (np.min(normalized_data), np.max(normalized_data)),
                      range)
+
+def scale_data_tf(data_tf, original_range=(-1.0, 1.0), output_range=(-0.21, 1.0)):
+    original_diff = original_range[1] - original_range[0]
+    output_diff = output_range[1] - output_range[0]
+    data_zero_one_scale = tf.divide(tf.subtract(data_tf, original_range[0]), original_diff)
+    return tf.add(tf.multiply(data_zero_one_scale, output_diff), output_range[0])
 
 def scale_data_with_scaler(data, scaler):
     """Scale data to [0, 1].
