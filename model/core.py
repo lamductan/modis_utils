@@ -496,7 +496,7 @@ def _create_model_with_tensorflow_2(model_params, compile_params):
 
     def myFunc(x):
         x = scale_data_tf(x)
-        x = tf.squeeze(x)
+        x = tf.reshape(x, [batch_size, input_shape[1], input_shape[2]])
         list_x = tf.split(x, batch_size)
         res = []
         for pred in list_x:
@@ -504,7 +504,7 @@ def _create_model_with_tensorflow_2(model_params, compile_params):
         res = tf.concat(res)
         return tf.expand_dims(res, axis=-1)
 
-    output = Lambda(myFunc, output_shape=predicted_img.get_shape().as_list())(predicted_img)
+    output = Lambda(myFunc, output_shape=[batch_size, input_shape[1], input_shape[2], 1])(predicted_img)
     model = keras.Model(inputs=[source], outputs=[output])
 
     # Compile parameters
