@@ -501,7 +501,7 @@ def _create_model_with_tensorflow_2(model_params, compile_params):
         res = []
         for pred in list_x:
             pred = tf.squeeze(pred)
-            res.append(mask_lake_img_tf(pred))
+            res.append(tf.expand_dims(mask_lake_img_tf(pred), axis=0))
         res = tf.concat(res, axis=0)
         return tf.expand_dims(res, axis=-1)
 
