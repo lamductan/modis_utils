@@ -14,7 +14,7 @@ from tensorflow.python.keras.callbacks import EarlyStopping, ModelCheckpoint
 from tensorflow.python.keras import losses
 
 from modis_utils.misc import scale_data, scale_data_tf
-from modis_utils.preprocessing.image_processing import mask_lake_img
+from modis_utils.preprocessing.image_processing import mask_lake_img, mask_lake_img_tf
 
 def create_dir_prefix(time_steps, filters, kernel_size, 
                     n_hidden_layers, epochs=None):
