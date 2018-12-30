@@ -499,7 +499,8 @@ def _create_model_with_tensorflow_2(model_params, compile_params):
         res = tf.concat(res)
         return tf.expand_dims(res, axis=-1)
 
-    model.add(Lambda(myFunc))
+    last_shape = (1, input_shape[1], input_shape[2], input_shape[3])
+    model.add(Lambda(myFunc, input_shape=last_shape, output_shape=last_shape))
 
     # Compile parameters
     optimizer = keras.optimizers.SGD(lr=1e-4)
