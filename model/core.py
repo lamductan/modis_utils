@@ -9,7 +9,7 @@ from tensorflow.python.keras.layers import Convolution1D, MaxPooling1D
 from tensorflow.python.keras.layers import Conv1D, Conv2D
 from tensorflow.python.keras.layers import GRU, LSTM
 from tensorflow.python.keras.layers import ConvLSTM2D
-from tensorflow.python.keras.layers import BatchNormalization
+from tensorflow.python.keras.layers import BatchNormalization, Lambda
 from tensorflow.python.keras.callbacks import EarlyStopping, ModelCheckpoint
 from tensorflow.python.keras import losses
 
