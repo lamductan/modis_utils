@@ -301,6 +301,7 @@ def _create_model_with_tensorflow_1(model_params, compile_params):
 def _create_model_with_tensorflow_2(model_params, compile_params):
     input_shape = model_params['input_shape']
     n_hidden_layers = 3
+    batch_size = 1
 
     filters = 16
     kernel_size = 5
@@ -385,6 +386,8 @@ def _create_model_with_tensorflow_2(model_params, compile_params):
         output_activation = model_params['output_activation']
     if 'n_hidden_layers' in model_params.keys():
         n_hidden_layers = model_params['n_hidden_layers']
+    if 'batch_size' in model_params.keys():
+        batch_size = model_params['batch_size']
 
     kernel_size_tuple = (kernel_size, kernel_size)
 
