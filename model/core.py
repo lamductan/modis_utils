@@ -505,7 +505,7 @@ def _create_model_with_tensorflow_2(model_params, compile_params):
         return tf.expand_dims(res, axis=-1)
 
     output = Lambda(myFunc, output_shape=[batch_size, input_shape[1], input_shape[2], 1])(predicted_img)
-    model = keras.Model(inputs=[source], outputs=[output])
+    model = keras.Model(inputs=[source], outputs=[predicted_img, output])
 
     # Compile parameters
     optimizer = keras.optimizers.SGD(lr=1e-4)
