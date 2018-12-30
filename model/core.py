@@ -501,7 +501,7 @@ def _create_model_with_tensorflow_2(model_params, compile_params):
         res = []
         for pred in list_x:
             res.append(mask_lake_img_tf(pred))
-        res = tf.concat(res)
+        res = tf.concat(res, axis=0)
         return tf.expand_dims(res, axis=-1)
 
     output = Lambda(myFunc, output_shape=[batch_size, input_shape[1], input_shape[2], 1])(predicted_img)
