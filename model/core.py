@@ -491,7 +491,7 @@ def _create_model_with_tensorflow_2(model_params, compile_params):
                            kernel_constraint=kernel_constraint,
                            bias_constraint=bias_constraint)(batchNorm_layers[-1])
 
-     def myFunc(x):
+    def myFunc(x):
         x = scale_data_tf(x)
         x = tf.squeeze(x)
         list_x = tf.split(x, batch_size)
