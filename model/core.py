@@ -497,7 +497,7 @@ def _create_model_with_tensorflow_2(model_params, compile_params):
     def myFunc(x):
         with open('log.txt', 'a') as f:
             f.write('x.shape = ')
-            f.write(x.shape)
+            f.write(str(x.shape))
             f.write('\n')
         f.close()
         x = scale_data_tf(x)
