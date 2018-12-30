@@ -504,9 +504,9 @@ def _create_model_with_tensorflow_2(model_params, compile_params):
         res = tf.concat(res, axis=0)
         return tf.expand_dims(res, axis=-1)
 
-    output_shape = [batch_size, input_shape[1], input_shape[2], 1]
+    #output_shape = [batch_size, input_shape[1], input_shape[2], 1]
     output = Lambda(myFunc, output_shape=output_shape)(predicted_img)
-    predicted_img = tf.reshape(predicted_img, output_shape)
+    #predicted_img = tf.reshape(predicted_img, output_shape)
     model = keras.Model(inputs=[source], outputs=[predicted_img, output])
 
     # Compile parameters
