@@ -495,7 +495,7 @@ def _create_model_with_tensorflow_2(model_params, compile_params):
                            bias_constraint=bias_constraint)(batchNorm_layers[-1])
 
     def myFunc(x):
-        tf.Print('x.shape = ', x.shape)
+        tf.Print('x.shape = ', tf.shape(x))
         x = scale_data_tf(x)
         x = tf.reshape(x, [batch_size, input_shape[1], input_shape[2]])
         list_x = tf.split(x, batch_size)
