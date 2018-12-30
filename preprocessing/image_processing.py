@@ -50,18 +50,18 @@ def mask_lake_img(img, band='NDVI'):
 def mask_lake_img_tf(img_tf, band='NDVI'):
     offset = WATER_THRESHOLD[band]/10000
     water_mask_tf = tf.where(tf.less(img_tf, offset),
-                             tf.fill(tf.shape(img_tf), 1),
-                             tf.fill(tf.shape(img_tf), 0))
+                             tf.fill(tf.shape(img_tf), 1.0),
+                             tf.fill(tf.shape(img_tf), 0.0))
     visited_tf = connected_components(water_mask_tf)
     visited_tf_flatten = tf.reshape(visited_tf, [-1])
-    mask = tf.not_equal(visited_tf_flatten, 0)
+    mask = tf.not_equal(visited_tf_flatten, 0.0)
     non_zero_array = tf.boolean_mask(visited_tf_flatten, mask)
     y, _, area = tf.unique_with_counts(non_zero_array)    
     pos = tf.argmax(area)
-    largest_element = tf.to_int32(y[pos])
+    largest_element = tf.to_float(y[pos])
     return tf.where(tf.equal(visited_tf, largest_element),
-                    tf.fill(tf.shape(img_tf), 1),
-                    tf.fill(tf.shape(img_tf), 0))
+                    tf.fill(tf.shape(img_tf), 1.0),
+                    tf.fill(tf.shape(img_tf), 0.0))
 
 def kmeans_mask(img, reservoir_index, quality=None):
     buffer = get_buffer(reservoir_index)
