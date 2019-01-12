@@ -70,7 +70,7 @@ def predict_and_visualize(data, target, model,
     return target_example, pred[0, :, :, 0]
 
 
-def predict_and_visualize_by_data_file(data_file_path, target_file_path,
+def predict_and_visualize_by_data_file(data_file_path, target_file_path, mask_file_path,
                                        model, which=0, result_dir=None,
                                        groundtruth_range=(-1,1)):
     example = get_data_test(data_file_path, which)
@@ -86,7 +86,6 @@ def predict_and_visualize_by_data_file(data_file_path, target_file_path,
         axe.imshow(img)
 
     pred = model.predict(example[np.newaxis, :, :, :, np.newaxis])
-    del model
 
     ax_groundtruth = plt.subplot(G[1, :time_steps//2])
     ax_groundtruth.imshow(target_example)
@@ -111,6 +110,56 @@ def predict_and_visualize_by_data_file(data_file_path, target_file_path,
         plt.savefig(os.path.join(result_dir, '{}.png'.format(which))) 
 
     return target_example, pred[0, :, :, 0]
+
+
+def predict_and_visualize_by_data_file_1(data_file_path, target_file_path, mask_file_path,
+                                         model, which=0, result_dir=None):
+    example = get_data_test(data_file_path, which)
+    target_example = get_target_test(target_file_path, which)
+    mask_example = get_target_test(mask_file_path, which)
+    mask_example = np.where(mask_example == 1, 1, 0)
+    
+    time_steps = example.shape[0]
+    plt.figure(figsize=(10, 10))
+    G = gridspec.GridSpec(3, time_steps)
+    
+    for i, img in enumerate(example):
+        axe = plt.subplot(G[0, i])
+        axe.imshow(img)
+
+    pred = model.predict(example[np.newaxis, :, :, :, np.newaxis])
+    img_pred = pred[0]
+    mask_pred = pred[1]
+
+    ax_groundtruth = plt.subplot(G[1, :time_steps//2])
+    ax_groundtruth.imshow(target_example)
+    ax_groundtruth.set_title('img_groundtruth')
+    ax_pred = plt.subplot(G[1, time_steps//2:2*(time_steps//2)])
+    ax_pred.imshow(img_pred[0, :, :, 0])
+    ax_pred.set_title('img_pred')
+
+    ax_mask_groundtruth = plt.subplot(G[2, :time_steps//2])
+    ax_mask_groundtruth.imshow(mask_example)
+    ax_mask_groundtruth.set_title('mask_groundtruth')
+    ax_mask_pred = plt.subplot(G[2, time_steps//2:2*(time_steps//2)])
+    ax_mask_pred.imshow(mask_pred[0, :, :, 0])
+    ax_mask_pred.set_title('mask_pred')
+
+    if result_dir is not None:
+        #eval = model.evaluate(np.expand_dims(data[which], axis=0), 
+        #                      np.expand_dims(target[which], axis=0))
+        try:
+            os.makedirs(result_dir)
+        except:
+            pass
+
+        #with open(os.path.join(result_dir, 'log.txt'), 'a') as w:
+        #    w.write('{},{}'.format(eval[0], eval[1]))
+        #    w.write('\n')
+
+        plt.savefig(os.path.join(result_dir, '{}.png'.format(which))) 
+
+    return target_example, mask_example, img_pred[0, :, :, 0], mask_pred[0, :, :, 0]
 
 
 def predict_and_visualize_RandomCrop(data, target, model, crop_size,

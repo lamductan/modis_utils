@@ -12,6 +12,7 @@ from tensorflow.python.keras.layers import ConvLSTM2D
 from tensorflow.python.keras.layers import BatchNormalization, Lambda
 from tensorflow.python.keras.callbacks import EarlyStopping, ModelCheckpoint
 from tensorflow.python.keras import losses
+from tensorflow.python.keras import regularizers
 
 from modis_utils.misc import scale_data, scale_data_tf
 from modis_utils.preprocessing.image_processing import mask_lake_img, mask_lake_img_tf
@@ -316,10 +317,15 @@ def _create_model_with_tensorflow_2(model_params, compile_params):
     recurrent_initializer = 'orthogonal'
     bias_initializer = 'zeros'
     unit_forget_bias = True
+    #kernel_regularizer = regularizers.l2(0.001)
     kernel_regularizer = None
+    #recurrent_regularizer = regularizers.l2(0.001)
     recurrent_regularizer = None
-    bias_regularizer=None
+    #bias_regularizer = regularizers.l2(0.001) 
+    bias_regularizer = None
+    #activity_regularizer = regularizers.l2(0.001)
     activity_regularizer = None
+    
     kernel_constraint = None
     recurrent_constraint = None
     bias_constraint = None
@@ -494,10 +500,13 @@ def _create_model_with_tensorflow_2(model_params, compile_params):
                            kernel_constraint=kernel_constraint,
                            bias_constraint=bias_constraint)(batchNorm_layers[-1])
 
-    def myFunc(x):
-        tf.Print(tf.shape(x), [tf.shape(x)], 'x.shape: ')
-        x = scale_data_tf(x)
-        x = tf.reshape(x, [batch_size, input_shape[1], input_shape[2]])
+    output_shape = [batch_size, input_shape[1], input_shape[2], 1]
+    def f1(x):
+        return (x + 1.0)/2.0*(1.2001) - 0.2001
+
+    def f2(x):
+        x = tf.reshape(x, output_shape)
+        x = tf.squeeze(x, axis=-1)
         list_x = tf.split(x, batch_size)
         res = []
         for pred in list_x:
@@ -505,18 +514,17 @@ def _create_model_with_tensorflow_2(model_params, compile_params):
             res.append(tf.expand_dims(mask_lake_img_tf(pred), axis=0))
         res = tf.concat(res, axis=0)
         res = tf.expand_dims(res, axis=-1)
-        del list_x
         return res
 
-    output_shape = [batch_size, input_shape[1], input_shape[2], 1]
-    output = Lambda(myFunc, output_shape=output_shape)(predicted_img)
-    #predicted_img = tf.reshape(predicted_img, output_shape)
-    model = keras.Model(inputs=[source], outputs=[predicted_img, output])
+    predicted_img = Lambda(f1, output_shape=output_shape)(predicted_img)
+    water_mask = Lambda(f2, output_shape=output_shape)(predicted_img)
+    model = keras.Model(inputs=[source], outputs=[predicted_img, water_mask])
 
     # Compile parameters
     optimizer = keras.optimizers.SGD(lr=1e-4)
     loss = 'mse'
     metrics = ['mse']
+    loss_weights = None
 
     if 'optimizer' in compile_params.keys():
         optimizer = compile_params['optimizer']
@@ -524,10 +532,13 @@ def _create_model_with_tensorflow_2(model_params, compile_params):
         loss = compile_params['loss']
     if 'metrics' in compile_params.keys():
         metrics= compile_params['metrics']
+    if 'loss_weights' in compile_params.keys():
+        loss_weights = compile_params["loss_weights"]
 
     model.compile(
         optimizer=optimizer,
         loss=loss,
+        loss_weights=loss_weights,
         metrics=metrics)
     return model
 

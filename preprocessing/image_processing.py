@@ -17,8 +17,7 @@ LABELS = [WATER_FLAG, LAND_WET_FLAG, LAND_DRY_FLAG]
 
 WATER_THRESHOLD = {'NDVI': 1000}
 
-def mask_cloud_and_water(img_dir, band='NDVI'):
-    offset = WATER_THRESHOLD[band]
+def mask_cloud_and_water(img_dir, band='NDVI', offset=1000):
     list_imgs = os.listdir(img_dir)
     band_filename = list(filter(lambda x: band in x, list_imgs))[0]
     band_filename = os.path.join(img_dir, band_filename)
@@ -36,7 +35,7 @@ def mask_cloud_and_water(img_dir, band='NDVI'):
         return mask 
 
 
-def mask_lake_img(img, band='NDVI'):
+def mask_lake_img(img, band='NDVI', offset=1000):
     offset = WATER_THRESHOLD[band]
     water_mask = np.where(img < offset, 1, 0)
     visited, label = measurements.label(water_mask)
