@@ -70,7 +70,7 @@ def predict_and_visualize(data, target, model,
     return target_example, pred[0, :, :, 0]
 
 
-def predict_and_visualize_by_data_file(data_file_path, target_file_path, mask_file_path,
+def predict_and_visualize_by_data_file(data_file_path, target_file_path,
                                        model, which=0, result_dir=None,
                                        groundtruth_range=(-1,1)):
     example = get_data_test(data_file_path, which)
