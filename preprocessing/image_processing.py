@@ -30,7 +30,7 @@ def mask_cloud_and_water(img_dir, band='NDVI', offset=1000):
         quality1 = np.mod(quality, 4)
        
         mask = np.ones_like(img)*-1
-        mask[np.where((offset[0]<=img) & (img<=offset[1]))] = WATER_FLAG
+        mask[np.where(img < offset)] = WATER_FLAG
         mask[np.where(quality1 >= 3)] = CLOUD_FLAG
         return mask 
 

@@ -176,6 +176,7 @@ def _create_model_with_tensorflow_1(model_params, compile_params):
         n_hidden_layers = model_params['n_hidden_layers']
 
     kernel_size_tuple = (kernel_size, kernel_size)
+    n_hidden_layers += 1
 
     source = keras.Input(
         name='seed', shape=input_shape, dtype=tf.float32)

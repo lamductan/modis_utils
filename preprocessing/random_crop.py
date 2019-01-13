@@ -27,6 +27,13 @@ def random_crop_func(x, min_rect, crop_size=32, random_crop=True):
             break
     return x[:,:, offset_y : offset_y+crop_size, offset_x : offset_x+crop_size]
 
+def random_crop_func(x, crop_size=32, random_crop=True):
+    '''x.shape = (n_data, time_step, img_height, img_width, channels) '''
+    h, w = x.shape[2:4]
+    offset_y = np.random.randint(h - crop_size)
+    offset_x = np.random.randint(w - crop_size)
+    return x[:,:, offset_y : offset_y+crop_size, offset_x : offset_x+crop_size]
+
 
 def _merge_data_target_mask(data, target, mask):
     target_1 = target.reshape(target.shape[0], 1, target.shape[1], 
@@ -370,10 +377,10 @@ def augment_one_reservoir_without_cache(data_dir='raw/MOD13Q1',
                                        time_steps, data_type, 'mask')
         mask_paths = get_mask_paths(mask_file)
 
-        _generate_without_cache(data_paths, target_paths, mask_paths,
-                                datagen, data_dir, used_reservoir, used_band, time_steps,
-                                list_years[data_type], data_type, mask_data_dir,
-                                n_samples, crop_size)
+        _generate_without_cache_and_buffer(data_paths, target_paths, mask_paths,
+                                           datagen, data_dir, used_reservoir, used_band, 
+                                           time_steps, list_years[data_type], data_type, 
+                                           mask_data_dir, n_samples, crop_size)
     return True
 
 
@@ -391,6 +398,39 @@ def _generate_without_cache(data_paths, target_paths, mask_paths,
                                                  mask_paths[k])
         for i in range(n_samples):
             batch = random_crop_func(data_merged, min_rect)
+            for j in range(batch.shape[0]):
+                cur = batch[j]
+                data = cur[:-2]
+                data = np.expand_dims(data, axis=-1)
+                target = np.expand_dims(cur[-2:-1], axis=-1)
+                mask = np.expand_dims(cur[-1:], axis=-1)
+                target_mask = np.concatenate((target, mask), axis=-1)
+                data_augment_dir = get_data_augment_dir(data_dir,
+                                                        used_reservoir,
+                                                        used_band,
+                                                        time_steps,
+                                                        data_type,
+                                                        crop_size)
+                if not os.path.isdir(data_augment_dir):
+                    os.makedirs(data_augment_dir)
+                file_path = os.path.join(data_augment_dir,
+                                         '{}.dat'.format(cnt))
+                cnt += 1
+                cache_data((data, target_mask), file_path)
+            del batch, cur, data, target, mask, target_mask
+
+
+def _generate_without_cache_and_buffer(data_paths, target_paths, mask_paths,
+                                       datagen, data_dir, used_reservoir, used_band, time_steps,
+                                       list_years, data_type, mask_data_dir,
+                                       n_samples, crop_size):
+    n_data = len(data_paths)
+    cnt = 0
+    for k in range(n_data):
+        data_merged = get_data_merged_from_paths(data_paths[k], target_paths[k],
+                                                 mask_paths[k])
+        for i in range(n_samples):
+            batch = random_crop_func(data_merged)
             for j in range(batch.shape[0]):
                 cur = batch[j]
                 data = cur[:-2]
