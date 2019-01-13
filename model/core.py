@@ -209,7 +209,7 @@ def _create_model_with_tensorflow_1(model_params, compile_params):
                                     recurrent_dropout=recurrent_dropout)(source)
     batchNorm_layers[0] = BatchNormalization()(convLSTM_layers[0])
 
-    for i in range(1, n_hidden_layers - 1):
+    for i in range(1, n_hidden_layers):
         convLSTM_layers[i] = ConvLSTM2D(filters=filters, 
                                         kernel_size=kernel_size_tuple,
                                         strides=strides,
