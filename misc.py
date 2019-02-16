@@ -7,19 +7,20 @@ import os
 import rasterio as rio
 import tensorflow as tf
 
-'''List of years for MOD13Q1 only
-TRAIN_LIST_YEARS_DEFAULT = [2002, 2007, 2009, 2010, 2014, 
-                            2005, 2003, 2015, 2011]
-VAL_LIST_YEARS_DEFAULT = [2001, 2006, 2016, 2013]
-TEST_LIST_YEARS_DEFAULT = [2008, 2017, 2012, 2004]
-'''
+#List of years for MOD13Q1 only
+TRAIN_LIST_YEARS_DEFAULT = [2000, 2001, 2002, 2003, 2004, 
+                            2005, 2006, 2007, 2008, 2009,
+                            2010, 2011]
+VAL_LIST_YEARS_DEFAULT = [2012, 2013, 2014]
+TEST_LIST_YEARS_DEFAULT = [2015, 2016, 2017]
 
+'''
 # List of year for combined MOD13Q1 and MYD13Q1
 TRAIN_LIST_YEARS_DEFAULT = [2003, 2004, 2005, 2006, 2007,
                             2008, 2009, 2010, 2011]
 VAL_LIST_YEARS_DEFAULT = [2012, 2013, 2014]
 TEST_LIST_YEARS_DEFAULT = [2015, 2016, 2017]
-
+'''
 
 def to_str(x):
     if not isinstance(x, list):
@@ -120,7 +121,10 @@ def get_threshold_mask_path(modis_product, reservoir_index, year, day):
     
 def get_threshold_mask(modis_product, reservoir_index, year, day):
     path = get_threshold_mask_path(modis_product, reservoir_index, year, day)
-    return restore_data(path)
+    if os.path.isfile(path):
+        return restore_data(path)
+    else:
+        return 0
 
 def get_percentile_path(reservoir_index):
     return os.path.join('percentile', '{}.dat'.format(reservoir_index))
@@ -149,17 +153,25 @@ def get_quality_img(modis_product, reservoir_index, year, day):
     quality_filename = os.path.join(img_dir, quality_filename)
     return restore_data(quality_filename)
 
-def get_mask_dir(modis_product, reservoir_index, year, day):
+def get_mask_dir(modis_product, reservoir_index, year, day, Zhang=False):
+    if Zhang:
+        return os.path.join('Zhang_mask_data', modis_product, str(reservoir_index),
+                        str(year), '{}{:03}'.format(year, day))
     return os.path.join('mask_data', modis_product, str(reservoir_index),
                         str(year), '{}{:03}'.format(year, day))
 
-def get_mask_path(modis_product, reservoir_index, year, day):
-    return os.path.join(get_mask_dir(modis_product, reservoir_index, year, day),
+def get_mask_path(modis_product, reservoir_index, year, day, Zhang=False):
+    return os.path.join(get_mask_dir(modis_product, reservoir_index,
+                                     year, day, Zhang),
                         'masked.dat')
 
-def get_mask(modis_product, reservoir_index, year, day):
+def get_mask(modis_product, reservoir_index, year, day, Zhang=False):
     try:
-        path = get_mask_path(modis_product, reservoir_index, year, day)
+        if Zhang:
+            path = get_Zhang_mask_path(modis_product, reservoir_index, 
+                                       year, day)
+        else:
+            path = get_mask_path(modis_product, reservoir_index, year, day)
         return restore_data(path)
     except:
         return None
@@ -526,16 +538,14 @@ def normalize_data(data, mean=0.0, std=1.0):
         return data - mean
     return (data - mean) / std
 
-def scale_data(data, min=-1000, max=10000, range_min=0, range_max=1):
-    return np.interp(data, (min, max), (range_min, range_max))
+#def scale_data(data, min=-1000, max=10000, range_min=0, range_max=1):
+#    return np.interp(data, (min, max), (range_min, range_max))
 
 def scale_data(data, original_range=(-1.0,1.0), range=(-0.21,1.0)):
     return np.interp(data, original_range, range)
 
 def scale_normalized_data(normalized_data, range=(-1.0,1.0)):
-    return np.interp(normalized_data, 
-                     (np.min(normalized_data), np.max(normalized_data)),
-                     range)
+    return np.interp(normalized_data, (-0.21, 1.0), range)
 
 def scale_data_tf(data_tf, original_range=(-1.0, 1.0), output_range=(-0.21, 1.0)):
     original_diff = original_range[1] - original_range[0]
@@ -611,6 +621,56 @@ def _create_data_file_continuous_years(data_dir,
     writer_mask = csv.writer(mask_f)
 
     reservoir_dir = os.path.join(data_dir, str(used_reservoir))
+    if list_years[0] == 2000:
+        list_years = list_years[1:]
+        
+        list_files_in_window = []
+        year = 2000
+        if mask_data_dir is not None:
+             mask_year_dir = os.path.join(mask_data_dir, 
+                                          str(used_reservoir), str(year))
+        year_dir = os.path.join(reservoir_dir, str(year))
+        list_folders = os.listdir(year_dir)
+        list_folders = sorted(list_folders, key=lambda x: int(x))
+        n_data_per_year = len(list_folders)
+
+        if n_data_per_year >= time_steps + 1:
+            # Write 1st timesteps
+            for i in np.arange(time_steps):
+                day = list_folders[i]
+                list_files = os.listdir(os.path.join(year_dir, day))
+                for file in list_files:
+                    if used_band in file:
+                        list_files_in_window.append(
+                            os.path.join(str(year), day, file))
+            day = list_folders[time_steps]
+            list_files = os.listdir(os.path.join(year_dir, day))
+            for file in list_files:
+                if used_band in file:
+                    list_files_in_window.append(
+                        os.path.join(str(year), day, file))
+            writer_input.writerow([os.path.join(reservoir_dir, file_path)
+                for file_path in list_files_in_window[:-1]])
+            writer_target.writerow([os.path.join(reservoir_dir, file_path)
+                for file_path in list_files_in_window[-1:]])
+            writer_mask.writerow([os.path.join(mask_year_dir, day,
+                                  'masked.dat')])
+
+            # write 2nd to last timesteps
+            for i in np.arange(time_steps + 1, len(list_folders)):
+                day = list_folders[i]
+                list_files_in_window = list_files_in_window[1:]
+                list_files = os.listdir(os.path.join(year_dir, day))
+                for file in list_files:
+                    if used_band in file:
+                        list_files_in_window.append(
+                            os.path.join(str(year), day, file))
+                writer_input.writerow([os.path.join(reservoir_dir, file_path)
+                    for file_path in list_files_in_window[:-1]])
+                writer_target.writerow([os.path.join(reservoir_dir, file_path)
+                    for file_path in list_files_in_window[-1:]])
+                writer_mask.writerow([os.path.join(mask_year_dir, day,
+                                      'masked.dat')])
     for year in list_years:
         list_files_in_window = []
         if mask_data_dir is not None:

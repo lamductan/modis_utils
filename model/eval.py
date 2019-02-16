@@ -72,7 +72,8 @@ def predict_and_visualize(data, target, model,
 
 def predict_and_visualize_by_data_file(data_file_path, target_file_path,
                                        model, which=0, result_dir=None,
-                                       groundtruth_range=(-1,1)):
+                                       groundtruth_range=(-0.21,1),
+                                       predict_range=(-1,1):
     example = get_data_test(data_file_path, which)
     target_example = get_target_test(target_file_path, which)
     target_example = scale_normalized_data(target_example, groundtruth_range)
@@ -86,13 +87,15 @@ def predict_and_visualize_by_data_file(data_file_path, target_file_path,
         axe.imshow(img)
 
     pred = model.predict(example[np.newaxis, :, :, :, np.newaxis])
+    pred = scale_data(pred, predict_range, groundtruth_range)
+    pred = pred[0,:,:,0]
 
     ax_groundtruth = plt.subplot(G[1, :time_steps//2])
     ax_groundtruth.imshow(target_example)
     ax_groundtruth.set_title('groundtruth')
     
     ax_pred = plt.subplot(G[1, time_steps//2:2*(time_steps//2)])
-    ax_pred.imshow(pred[0, :, :, 0])
+    ax_pred.imshow(pred)
     ax_pred.set_title('predict')
 
     if result_dir is not None:
@@ -109,7 +112,7 @@ def predict_and_visualize_by_data_file(data_file_path, target_file_path,
 
         plt.savefig(os.path.join(result_dir, '{}.png'.format(which))) 
 
-    return target_example, pred[0, :, :, 0]
+    return target_example, pred
 
 
 def predict_and_visualize_by_data_file_1(data_file_path, target_file_path, mask_file_path,

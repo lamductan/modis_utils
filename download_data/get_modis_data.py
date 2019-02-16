@@ -90,15 +90,18 @@ class GetModisData:
     def create_reservoirs_download_dataframe(reservoirs_GeoDataFrame,
                                              product_code,
                                              email,
-                                             start_index):
+                                             start_index,
+                                             start_date,
+                                             end_date):
         df = pd.DataFrame(columns=['site_id', 'product', 
                                    'latitude', 'longitude', 
                                    'email', 'start_date', 'end_date',
                                    'km_above_below', 'km_left_right', 
                                    'order_uid'])
         
-        default_start_date = pd.to_datetime('2000-01-01')
-        default_end_date = pd.to_datetime('2018-07-25')
+        start_date = pd.to_datetime(start_date)
+        end_date = pd.to_datetime(end_date)
+        n_downloaded = 0
         
         for index, reservoir_row in reservoirs_GeoDataFrame.iterrows():
             center, km_above_below, km_left_right = \
@@ -108,24 +111,35 @@ class GetModisData:
                    'latitude': center.y,
                    'longitude': center.x,
                    'email': email,
-                   'start_date': default_start_date,
-                   'end_date': default_end_date,
+                   'start_date': start_date,
+                   'end_date': end_date,
                    'km_above_below': km_above_below,
                    'km_left_right': km_left_right,
                    'order_uid': 'None'}
             
-            row['start_date'], row['end_date'] = \
-                GetModisData.get_modis_date(row)
-            df = df.append(row, ignore_index=True)
+            try:
+                row['start_date'], row['end_date'] = \
+                    GetModisData.get_modis_date(row)
+                df = df.append(row, ignore_index=True)
+                n_downloaded += 1
+            except:
+                print('Invalid argument: Number of kilometers above or below \
+                       the subset location must be less than or equal to 100.')
         
-        df.index = pd.RangeIndex(start_index, start_index + df.shape[0])
+        df.index = pd.RangeIndex(start_index, start_index + n_downloaded)
         return df
     
     
     def _create_order_url(reservoirs_download_df, download_result_file=None):
         # Make list to collect order UIDs
         order_uids = []
-        
+        n_downloaded = 0
+        df = pd.DataFrame(columns=['site_id', 'product', 
+                                   'latitude', 'longitude', 
+                                   'email', 'start_date', 'end_date',
+                                   'km_above_below', 'km_left_right', 
+                                   'order_uid'])
+
         for index, row in reservoirs_download_df.iterrows():
             if row['order_uid'] == 'None':
                 # Build request URL
@@ -149,19 +163,19 @@ class GetModisData:
                 try:
                     order_uid = (GetModisData.SUBSET_URL
                                  + json.loads(response.text)['order_id'])
+                    row['order_uid'] = order_uid
+                    n_downloaded += 1
+                    df = df.append(row, ignore_index=True)
+                    order_uids.append(order_uid)
                 except TypeError as err:
                     print(response.text)
-                    break
 
-                # Append UID to list
-                order_uids.append(order_uid)
-                reservoirs_download_df.loc[index, 'order_uid'] = order_uid
-
+        df.index = pd.RangeIndex(0, n_downloaded)
         print(order_uids)
         if download_result_file is None:
-            reservoirs_download_df.to_csv(product_code + '.csv')
+            df.to_csv(product_code + '.csv')
         else:
-            reservoirs_download_df.to_csv(download_result_file + '.csv')
+            df.to_csv(download_result_file + '.csv')
         return order_uids
     
     
@@ -171,7 +185,9 @@ class GetModisData:
                          recreate_download_file=False,
                          download_result_file=None, 
                          start_index=0, n_downloaded_reservoirs=1,
-                         email_id=3):
+                         email_id=3,
+                         start_date='2000-01-01',
+                         end_date='2018-12-31'):
         """Create order url on MODIS web service host.
 
         Example:
@@ -182,7 +198,9 @@ class GetModisData:
                                           download_result_file='MOD13Q1_a',
                                           start_index=0,
                                           n_downloaded_reservoirs=1,
-                                          email_id=1)
+                                          email_id=1,
+                                          start_date='2000-01-01',
+                                          end_date='2018-12-31')
 
         Args:
             reservoirs_GeoDataFrame: A geopandas dataframe, read from a .shp file.
@@ -197,6 +215,8 @@ class GetModisData:
             email_id: Id of the first usable email in this day (one email can request 
                 21 times per day max). You should carefully check this argument to
                 prevent error.
+            start_date: First date to collect data, a string "YYYY-MM-DD" format.
+            end_date: Last date to collect data, a string "YYYY-MM-DD" format.
         
         Returns:
             List of order uids.
@@ -231,7 +251,9 @@ class GetModisData:
                         df = GetModisData.\
                             create_reservoirs_download_dataframe(download_GeoDataFrame,
                                                                  modis_product_code, 
-                                                                 email, idx) 
+                                                                 email, idx,
+                                                                 start_date,
+                                                                 end_date) 
                         reservoirs_download_df = reservoirs_download_df.append(df,
                                                                 ignore_index=True)
                         email_id += 1
@@ -243,7 +265,9 @@ class GetModisData:
                     create_reservoirs_download_dataframe(download_GeoDataFrame,
                                                          modis_product_code, 
                                                          email, 
-                                                         end_index - end_index % 20)
+                                                         end_index - end_index % 20,
+                                                         start_date,
+                                                         end_date)
                 reservoirs_download_df = reservoirs_download_df.append(df,
                                                             ignore_index=True)
                 reservoirs_download_df.to_csv(f, header=(start_index==0))

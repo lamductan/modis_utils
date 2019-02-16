@@ -235,7 +235,7 @@ def _merge_data_with_last(merge_data_dir, n_data, data_index_shuffle, list_data,
         p.join()
 
 
-def merge_data_augment_train_val(data_dir,
+def merge_data_augment_train_val_all_reservoirs(data_dir,
                                  used_band,
                                  time_steps,
                                  crop_size,
@@ -289,6 +289,60 @@ def merge_data_augment_train_val(data_dir,
     _merge_data_with_last(merge_data_val_dir, n_val, val_index_shuffle,
                           list_val_data, batch_size, n_threads)
 
+def merge_data_augment_train_val(data_dir,
+                                 used_reservoir,
+                                 used_band,
+                                 time_steps,
+                                 crop_size,
+                                 batch_size=1024,
+                                 n_threads=mp.cpu_count() - 2):
+    """Merge multiple crop files for speed up uploading and training
+    on Google Colab."
+
+    Example:
+        merge_data_augment_train_val(data_dir='raw_data/MOD13Q1',
+                                     used_reservoir=0,
+                                     used_band='NDVI',
+                                     time_steps=12,
+                                     crop_size=32,
+                                     batch_size=1024,
+                                     n_threads=6)
+
+    Args:
+        data_dir: String, directory where stores image data.
+        used_band: String, a string represents name of used band.
+        time_steps: Integer, time steps (length) of LSTM sequence.
+        crop_size: Integer, size of crop.
+        batch_size: Integer, number of crop files merged to one unique file.
+        n_threads: Integer, number of parallel threads. It is recommended to
+            set this parameter equal to your core number minus 2.
+    """
+    data_augment_dir = os.path.join('data_augment', data_dir,
+                                    str(crop_size), str(time_steps))
+    list_train_data = []
+    list_val_data = []
+    train_path = get_data_augment_dir(data_dir, used_reservoir, used_band,
+                                      time_steps, 'train', crop_size)
+    val_path = get_data_augment_dir(data_dir, used_reservoir, used_band,
+                                    time_steps, 'val', crop_size)
+    list_train_data += [os.path.join(train_path, data_index) for data_index 
+                        in os.listdir(train_path)]
+    list_val_data += [os.path.join(val_path, data_index) for data_index 
+                      in os.listdir(val_path)]
+    n_train = len(list_train_data)
+    n_val = len(list_val_data)
+    train_index_shuffle = np.random.permutation(n_train)
+    val_index_shuffle = np.random.permutation(n_val)
+    
+    merge_data_train_dir = get_data_augment_merged_dir(data_dir, used_band,
+                                            time_steps, 'train', crop_size)
+    merge_data_val_dir = get_data_augment_merged_dir(data_dir, used_band,
+                                            time_steps, 'val', crop_size)
+    _merge_data_with_last(merge_data_train_dir, n_train, train_index_shuffle,
+                          list_train_data, batch_size, n_threads)
+    _merge_data_with_last(merge_data_val_dir, n_val, val_index_shuffle,
+                          list_val_data, batch_size, n_threads)
+
 
 def augment_one_reservoir_without_cache(data_dir='raw/MOD13Q1',
                                         used_reservoir=0,
@@ -301,7 +355,8 @@ def augment_one_reservoir_without_cache(data_dir='raw/MOD13Q1',
                                         test_list_years=None,
                                         mask_data_dir='mask_data/MOD13Q1',
                                         n_samples=100,
-                                        recreated_data_file=False):
+                                        recreated_data_file=False,
+                                        Zhang=False):
     """Generate random crop augmentation on reservoir.
 
     Example:
@@ -316,7 +371,8 @@ def augment_one_reservoir_without_cache(data_dir='raw/MOD13Q1',
                                             test_list_years=None,
                                             mask_data_dir='mask_data/MOD13Q1',
                                             n_samples=100,
-                                            recreated_data_file=False)
+                                            recreated_data_file=False,
+                                            Zhang=False)
 
     Args:
         data_dir: String, directory where stores image data.
