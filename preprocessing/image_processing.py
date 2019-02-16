@@ -37,6 +37,12 @@ def mask_cloud_and_water(img_dir, band='NDVI', offset=1000, cloud_flag=True):
         return mask 
 
 
+def mask_water_tf(img_tf, offset=0.1):
+    return tf.where(tf.less(img_tf, offset),
+                    tf.fill(tf.shape(img_tf), 1.0),
+                    tf.fill(tf.shape(img_tf), -1.0))
+
+
 def mask_lake_img(img, band='NDVI', offset=1000):
     offset = WATER_THRESHOLD[band]
     water_mask = np.where(img < offset, 1, 0)

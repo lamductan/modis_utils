@@ -16,6 +16,8 @@ from tensorflow.python.keras import regularizers
 
 from modis_utils.misc import scale_data, scale_data_tf
 from modis_utils.preprocessing.image_processing import mask_lake_img, mask_lake_img_tf
+from modis_utils.preprocessing.image_processing import mask_water_tf
+
 
 def create_dir_prefix(time_steps, filters, kernel_size, 
                     n_hidden_layers, epochs=None):
@@ -485,6 +487,70 @@ def _create_model_with_tensorflow_2(model_params, compile_params):
 
     batchNorm_layers[-1] = BatchNormalization()(convLSTM_layers[-1])
 
+    predicted_img = Conv2D(filters=128,
+                           kernel_size=kernel_size_tuple,
+                           strides=strides,
+                           activation=output_activation,
+                           padding=padding, 
+                           data_format=data_format,
+                           dilation_rate=dilation_rate,
+                           use_bias=use_bias,
+                           kernel_initializer=kernel_initializer,
+                           bias_initializer=bias_initializer,
+                           kernel_regularizer=kernel_regularizer,
+                           bias_regularizer=bias_regularizer,
+                           activity_regularizer=activity_regularizer,
+                           kernel_constraint=kernel_constraint,
+                           bias_constraint=bias_constraint)(batchNorm_layers[-1])
+
+    predicted_img = Conv2D(filters=128,
+                           kernel_size=kernel_size_tuple,
+                           strides=strides,
+                           activation=output_activation,
+                           padding=padding, 
+                           data_format=data_format,
+                           dilation_rate=dilation_rate,
+                           use_bias=use_bias,
+                           kernel_initializer=kernel_initializer,
+                           bias_initializer=bias_initializer,
+                           kernel_regularizer=kernel_regularizer,
+                           bias_regularizer=bias_regularizer,
+                           activity_regularizer=activity_regularizer,
+                           kernel_constraint=kernel_constraint,
+                           bias_constraint=bias_constraint)(batchNorm_layers[-1])
+
+    predicted_img = Conv2D(filters=64,
+                           kernel_size=kernel_size_tuple,
+                           strides=strides,
+                           activation=output_activation,
+                           padding=padding, 
+                           data_format=data_format,
+                           dilation_rate=dilation_rate,
+                           use_bias=use_bias,
+                           kernel_initializer=kernel_initializer,
+                           bias_initializer=bias_initializer,
+                           kernel_regularizer=kernel_regularizer,
+                           bias_regularizer=bias_regularizer,
+                           activity_regularizer=activity_regularizer,
+                           kernel_constraint=kernel_constraint,
+                           bias_constraint=bias_constraint)(batchNorm_layers[-1])
+
+    predicted_img = Conv2D(filters=32,
+                           kernel_size=kernel_size_tuple,
+                           strides=strides,
+                           activation=output_activation,
+                           padding=padding, 
+                           data_format=data_format,
+                           dilation_rate=dilation_rate,
+                           use_bias=use_bias,
+                           kernel_initializer=kernel_initializer,
+                           bias_initializer=bias_initializer,
+                           kernel_regularizer=kernel_regularizer,
+                           bias_regularizer=bias_regularizer,
+                           activity_regularizer=activity_regularizer,
+                           kernel_constraint=kernel_constraint,
+                           bias_constraint=bias_constraint)(batchNorm_layers[-1])
+
     predicted_img = Conv2D(filters=1,
                            kernel_size=kernel_size_tuple,
                            strides=strides,
@@ -501,26 +567,7 @@ def _create_model_with_tensorflow_2(model_params, compile_params):
                            kernel_constraint=kernel_constraint,
                            bias_constraint=bias_constraint)(batchNorm_layers[-1])
 
-    output_shape = [batch_size, input_shape[1], input_shape[2], 1]
-    def f1(x):
-        return (x + 1.0)/2.0*(1.2001) - 0.2001
-
-    def f2(x):
-        x = tf.reshape(x, output_shape)
-        x = tf.squeeze(x, axis=-1)
-        list_x = tf.split(x, batch_size)
-        res = []
-        for pred in list_x:
-            pred = tf.squeeze(pred)
-            res.append(tf.expand_dims(mask_lake_img_tf(pred), axis=0))
-        res = tf.concat(res, axis=0)
-        res = tf.expand_dims(res, axis=-1)
-        return res
-
-    predicted_img = Lambda(f1, output_shape=output_shape)(predicted_img)
-    water_mask = Lambda(f2, output_shape=output_shape)(predicted_img)
-    #model = keras.Model(inputs=[source], outputs=[predicted_img, water_mask])
-    model = keras.Model(inputs=[source], outputs=[water_mask])
+    model = keras.Model(inputs=[source], outputs=[predicted_img])
 
     # Compile parameters
     optimizer = keras.optimizers.SGD(lr=1e-4)
