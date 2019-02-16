@@ -519,7 +519,8 @@ def _create_model_with_tensorflow_2(model_params, compile_params):
 
     predicted_img = Lambda(f1, output_shape=output_shape)(predicted_img)
     water_mask = Lambda(f2, output_shape=output_shape)(predicted_img)
-    model = keras.Model(inputs=[source], outputs=[predicted_img, water_mask])
+    #model = keras.Model(inputs=[source], outputs=[predicted_img, water_mask])
+    model = keras.Model(inputs=[source], outputs=[water_mask])
 
     # Compile parameters
     optimizer = keras.optimizers.SGD(lr=1e-4)

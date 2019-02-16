@@ -72,7 +72,7 @@ def predict_and_visualize(data, target, model,
 
 def predict_and_visualize_by_data_file(data_file_path, target_file_path,
                                        model, which=0, result_dir=None,
-                                       groundtruth_range=(-0.21,1),
+                                       groundtruth_range=(-0.2001,1),
                                        predict_range=(-1,1)):
     example = get_data_test(data_file_path, which)
     target_example = get_target_test(target_file_path, which)
@@ -438,7 +438,7 @@ def test_by_data_file(reservoir_index, test_index, data_file_path,
         predict_range = (-1.0, 1.0)
     else:
         predict_range = (0.0, 1.0)
-    groundtruth_range = (-0.21, 1.0)
+    groundtruth_range = (-0.2001, 1.0)
 
     model_non_gridding.load_weights(weight_path)
 
