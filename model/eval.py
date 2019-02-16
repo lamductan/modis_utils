@@ -73,7 +73,7 @@ def predict_and_visualize(data, target, model,
 def predict_and_visualize_by_data_file(data_file_path, target_file_path,
                                        model, which=0, result_dir=None,
                                        groundtruth_range=(-0.21,1),
-                                       predict_range=(-1,1):
+                                       predict_range=(-1,1)):
     example = get_data_test(data_file_path, which)
     target_example = get_target_test(target_file_path, which)
     target_example = scale_normalized_data(target_example, groundtruth_range)
