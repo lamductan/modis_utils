@@ -435,9 +435,10 @@ def test_by_data_file(reservoir_index, test_index, data_file_path,
     model_non_gridding = create_model_with_tensorflow(model_params_non_gridding,
                                                       compile_params)
     if model_params_non_gridding['output_activation'] == 'tanh':
-        groundtruth_range = (-1.0, 1.0)
+        predict_range = (-1.0, 1.0)
     else:
-        groundtruth_range = (0.0, 1.0)
+        predict_range = (0.0, 1.0)
+    groundtruth_range = (-0.21, 1.0)
 
     model_non_gridding.load_weights(weight_path)
 
@@ -452,6 +453,7 @@ def test_by_data_file(reservoir_index, test_index, data_file_path,
         which=test_index,
         model=model_non_gridding,
         groundtruth_range=groundtruth_range,
+        predict_range=predict_range,
         result_dir=result_dir)
 
     mask = get_target_test(mask_file_path, test_index)
