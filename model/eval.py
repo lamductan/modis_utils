@@ -87,6 +87,8 @@ def predict_and_visualize_by_data_file(data_file_path, target_file_path,
         axe.imshow(img)
 
     pred = model.predict(example[np.newaxis, :, :, :, np.newaxis])
+    if isinstance(pred, list):
+        pred = pred[1]
     pred = scale_data(pred, predict_range, groundtruth_range)
     pred = pred[0,:,:,0]
 
