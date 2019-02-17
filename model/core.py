@@ -406,6 +406,7 @@ def _create_model_with_tensorflow_2(model_params, compile_params):
     convLSTM_layers = [0]*(n_hidden_layers)
     batchNorm_layers = [0]*(n_hidden_layers)
  
+    # ConvLSTM Encoder
     convLSTM_layers[0] = ConvLSTM2D(filters=filters[0], 
                                     kernel_size=kernel_size_tuple,
                                     strides=strides,
@@ -432,7 +433,7 @@ def _create_model_with_tensorflow_2(model_params, compile_params):
                                     recurrent_dropout=recurrent_dropout)(source)
     batchNorm_layers[0] = BatchNormalization()(convLSTM_layers[0])
 
-    for i in range(1, n_hidden_layers - 1):
+    for i in range(1, n_hidden_layers):
         convLSTM_layers[i] = ConvLSTM2D(filters=filters[i], 
                                         kernel_size=kernel_size_tuple,
                                         strides=strides,
@@ -459,34 +460,8 @@ def _create_model_with_tensorflow_2(model_params, compile_params):
                                         recurrent_dropout=recurrent_dropout)(batchNorm_layers[i-1])
 
         batchNorm_layers[i] = BatchNormalization()(convLSTM_layers[i])
-    
-    convLSTM_layers[-1] = ConvLSTM2D(filters=filters[-1], 
-                                    kernel_size=kernel_size_tuple,
-                                    strides=strides,
-                                    padding=padding,
-                                    data_format=data_format,
-                                    dilation_rate=dilation_rate,
-                                    activation=activation,
-                                    recurrent_activation=recurrent_activation,
-                                    use_bias=use_bias,
-                                    kernel_initializer=kernel_initializer,
-                                    recurrent_initializer=recurrent_initializer,
-                                    bias_initializer=bias_initializer,
-                                    unit_forget_bias=unit_forget_bias,
-                                    kernel_regularizer=kernel_regularizer,
-                                    recurrent_regularizer=recurrent_regularizer,
-                                    bias_regularizer=bias_regularizer,
-                                    activity_regularizer=activity_regularizer,
-                                    kernel_constraint=kernel_constraint,
-                                    bias_constraint=bias_constraint,
-                                    return_sequences=False,
-                                    go_backwards=go_backwards,
-                                    stateful=stateful,
-                                    dropout=dropout,
-                                    recurrent_dropout=recurrent_dropout)(batchNorm_layers[-2])
 
-    batchNorm_layers[-1] = BatchNormalization()(convLSTM_layers[-1])
-
+    # Reconstruct Decoder
     reconstruct_layers = [0]*n_hidden_layers
     batchNorm_reconstruct = [0]*n_hidden_layers
     reconstruct_layers[0] = ConvLSTM2D(filters=filters[0], 
@@ -512,7 +487,7 @@ def _create_model_with_tensorflow_2(model_params, compile_params):
                                   go_backwards=go_backwards,
                                   stateful=stateful,
                                   dropout=dropout,
-                                  recurrent_dropout=recurrent_dropout)(batchNorm_layers[-2])
+                                  recurrent_dropout=recurrent_dropout)(batchNorm_layers[-1])
 
     batchNorm_reconstruct[0] = BatchNormalization()(reconstruct_layers[0])
 
@@ -544,7 +519,7 @@ def _create_model_with_tensorflow_2(model_params, compile_params):
 
         batchNorm_reconstruct[i] = BatchNormalization()(reconstruct_layers[i])
 
-    reconstruct_imgs = Conv2D(filters=1,
+    reconstruct_imgs = TimeDistributed(Conv2D(filters=1,
                                kernel_size=kernel_size_tuple,
                                strides=strides,
                                activation=output_activation,
@@ -558,7 +533,92 @@ def _create_model_with_tensorflow_2(model_params, compile_params):
                                bias_regularizer=bias_regularizer,
                                activity_regularizer=activity_regularizer,
                                kernel_constraint=kernel_constraint,
-                               bias_constraint=bias_constraint)(batchNorm_reconstruct[-1])
+                               bias_constraint=bias_constraint))(batchNorm_reconstruct[-1])
+    
+    # Predict Decoder
+    predict_layers = [0]*(n_hidden_layers)
+    batchNorm_predict = [0]*(n_hidden_layers)
+ 
+    predict_layers[0] = ConvLSTM2D(filters=filters[0], 
+                                    kernel_size=kernel_size_tuple,
+                                    strides=strides,
+                                    padding=padding,
+                                    data_format=data_format,
+                                    dilation_rate=dilation_rate,
+                                    activation=activation,
+                                    recurrent_activation=recurrent_activation,
+                                    use_bias=use_bias,
+                                    kernel_initializer=kernel_initializer,
+                                    recurrent_initializer=recurrent_initializer,
+                                    bias_initializer=bias_initializer,
+                                    unit_forget_bias=unit_forget_bias,
+                                    kernel_regularizer=kernel_regularizer,
+                                    recurrent_regularizer=recurrent_regularizer,
+                                    bias_regularizer=bias_regularizer,
+                                    activity_regularizer=activity_regularizer,
+                                    kernel_constraint=kernel_constraint,
+                                    bias_constraint=bias_constraint,
+                                    return_sequences=True,
+                                    go_backwards=go_backwards,
+                                    stateful=stateful,
+                                    dropout=dropout,
+                                    recurrent_dropout=recurrent_dropout)(batchNorm_layers[-1])
+    batchNorm_predict[0] = BatchNormalization()(predict_layers[0])
+
+    for i in range(1, n_hidden_layers - 1):
+        predict_layers[i] = ConvLSTM2D(filters=filters[i], 
+                                        kernel_size=kernel_size_tuple,
+                                        strides=strides,
+                                        padding=padding,
+                                        data_format=data_format,
+                                        dilation_rate=dilation_rate,
+                                        activation=activation,
+                                        recurrent_activation=recurrent_activation,
+                                        use_bias=use_bias,
+                                        kernel_initializer=kernel_initializer,
+                                        recurrent_initializer=recurrent_initializer,
+                                        bias_initializer=bias_initializer,
+                                        unit_forget_bias=unit_forget_bias,
+                                        kernel_regularizer=kernel_regularizer,
+                                        recurrent_regularizer=recurrent_regularizer,
+                                        bias_regularizer=bias_regularizer,
+                                        activity_regularizer=activity_regularizer,
+                                        kernel_constraint=kernel_constraint,
+                                        bias_constraint=bias_constraint,
+                                        return_sequences=True,
+                                        go_backwards=go_backwards,
+                                        stateful=stateful,
+                                        dropout=dropout,
+                                        recurrent_dropout=recurrent_dropout)(batchNorm_predict[i-1])
+
+        batchNorm_predict[i] = BatchNormalization()(predict_layers[i])
+    
+    predict_layers[-1] = ConvLSTM2D(filters=filters[-1], 
+                                    kernel_size=kernel_size_tuple,
+                                    strides=strides,
+                                    padding=padding,
+                                    data_format=data_format,
+                                    dilation_rate=dilation_rate,
+                                    activation=activation,
+                                    recurrent_activation=recurrent_activation,
+                                    use_bias=use_bias,
+                                    kernel_initializer=kernel_initializer,
+                                    recurrent_initializer=recurrent_initializer,
+                                    bias_initializer=bias_initializer,
+                                    unit_forget_bias=unit_forget_bias,
+                                    kernel_regularizer=kernel_regularizer,
+                                    recurrent_regularizer=recurrent_regularizer,
+                                    bias_regularizer=bias_regularizer,
+                                    activity_regularizer=activity_regularizer,
+                                    kernel_constraint=kernel_constraint,
+                                    bias_constraint=bias_constraint,
+                                    return_sequences=False,
+                                    go_backwards=go_backwards,
+                                    stateful=stateful,
+                                    dropout=dropout,
+                                    recurrent_dropout=recurrent_dropout)(batchNorm_predict[-2])
+
+    batchNorm_predict[-1] = BatchNormalization()(predict_layers[-1])
 
     predicted_img = Conv2D(filters=1,
                            kernel_size=kernel_size_tuple,
@@ -574,7 +634,7 @@ def _create_model_with_tensorflow_2(model_params, compile_params):
                            bias_regularizer=bias_regularizer,
                            activity_regularizer=activity_regularizer,
                            kernel_constraint=kernel_constraint,
-                           bias_constraint=bias_constraint)(batchNorm_layers[-1])
+                           bias_constraint=bias_constraint)(batchNorm_predict[-1])
 
     model = keras.Model(inputs=[source], outputs=[reconstruct_imgs, predicted_img])
 
