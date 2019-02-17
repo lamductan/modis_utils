@@ -9,7 +9,7 @@ from tensorflow.python.keras.layers import Convolution1D, MaxPooling1D
 from tensorflow.python.keras.layers import Conv1D, Conv2D
 from tensorflow.python.keras.layers import GRU, LSTM
 from tensorflow.python.keras.layers import ConvLSTM2D
-from tensorflow.python.keras.layers import BatchNormalization, Lambda
+from tensorflow.python.keras.layers import BatchNormalization, TimeDistributed
 from tensorflow.python.keras.callbacks import EarlyStopping, ModelCheckpoint
 from tensorflow.python.keras import losses
 from tensorflow.python.keras import regularizers
@@ -487,69 +487,78 @@ def _create_model_with_tensorflow_2(model_params, compile_params):
 
     batchNorm_layers[-1] = BatchNormalization()(convLSTM_layers[-1])
 
-    predicted_img = Conv2D(filters=128,
-                           kernel_size=kernel_size_tuple,
-                           strides=strides,
-                           activation=output_activation,
-                           padding=padding, 
-                           data_format=data_format,
-                           dilation_rate=dilation_rate,
-                           use_bias=use_bias,
-                           kernel_initializer=kernel_initializer,
-                           bias_initializer=bias_initializer,
-                           kernel_regularizer=kernel_regularizer,
-                           bias_regularizer=bias_regularizer,
-                           activity_regularizer=activity_regularizer,
-                           kernel_constraint=kernel_constraint,
-                           bias_constraint=bias_constraint)(batchNorm_layers[-1])
+    reconstruct_layers = [0]*n_hidden_layers
+    batchNorm_reconstruct = [0]*n_hidden_layers
+    reconstruct_layers[0] = ConvLSTM2D(filters=filters[0], 
+                                  kernel_size=kernel_size_tuple,
+                                  strides=strides,
+                                  padding=padding,
+                                  data_format=data_format,
+                                  dilation_rate=dilation_rate,
+                                  activation=activation,
+                                  recurrent_activation=recurrent_activation,
+                                  use_bias=use_bias,
+                                  kernel_initializer=kernel_initializer,
+                                  recurrent_initializer=recurrent_initializer,
+                                  bias_initializer=bias_initializer,
+                                  unit_forget_bias=unit_forget_bias,
+                                  kernel_regularizer=kernel_regularizer,
+                                  recurrent_regularizer=recurrent_regularizer,
+                                  bias_regularizer=bias_regularizer,
+                                  activity_regularizer=activity_regularizer,
+                                  kernel_constraint=kernel_constraint,
+                                  bias_constraint=bias_constraint,
+                                  return_sequences=True,
+                                  go_backwards=go_backwards,
+                                  stateful=stateful,
+                                  dropout=dropout,
+                                  recurrent_dropout=recurrent_dropout)(batchNorm_layers[-2])
 
-    predicted_img = Conv2D(filters=128,
-                           kernel_size=kernel_size_tuple,
-                           strides=strides,
-                           activation=output_activation,
-                           padding=padding, 
-                           data_format=data_format,
-                           dilation_rate=dilation_rate,
-                           use_bias=use_bias,
-                           kernel_initializer=kernel_initializer,
-                           bias_initializer=bias_initializer,
-                           kernel_regularizer=kernel_regularizer,
-                           bias_regularizer=bias_regularizer,
-                           activity_regularizer=activity_regularizer,
-                           kernel_constraint=kernel_constraint,
-                           bias_constraint=bias_constraint)(batchNorm_layers[-1])
+    batchNorm_reconstruct[0] = BatchNormalization()(reconstruct_layers[0])
 
-    predicted_img = Conv2D(filters=64,
-                           kernel_size=kernel_size_tuple,
-                           strides=strides,
-                           activation=output_activation,
-                           padding=padding, 
-                           data_format=data_format,
-                           dilation_rate=dilation_rate,
-                           use_bias=use_bias,
-                           kernel_initializer=kernel_initializer,
-                           bias_initializer=bias_initializer,
-                           kernel_regularizer=kernel_regularizer,
-                           bias_regularizer=bias_regularizer,
-                           activity_regularizer=activity_regularizer,
-                           kernel_constraint=kernel_constraint,
-                           bias_constraint=bias_constraint)(batchNorm_layers[-1])
+    for i in range(1, n_hidden_layers):
+        reconstruct_layers[i] = ConvLSTM2D(filters=filters[0], 
+                                          kernel_size=kernel_size_tuple,
+                                          strides=strides,
+                                          padding=padding,
+                                          data_format=data_format,
+                                          dilation_rate=dilation_rate,
+                                          activation=activation,
+                                          recurrent_activation=recurrent_activation,
+                                          use_bias=use_bias,
+                                          kernel_initializer=kernel_initializer,
+                                          recurrent_initializer=recurrent_initializer,
+                                          bias_initializer=bias_initializer,
+                                          unit_forget_bias=unit_forget_bias,
+                                          kernel_regularizer=kernel_regularizer,
+                                          recurrent_regularizer=recurrent_regularizer,
+                                          bias_regularizer=bias_regularizer,
+                                          activity_regularizer=activity_regularizer,
+                                          kernel_constraint=kernel_constraint,
+                                          bias_constraint=bias_constraint,
+                                          return_sequences=True,
+                                          go_backwards=go_backwards,
+                                          stateful=stateful,
+                                          dropout=dropout,
+                                          recurrent_dropout=recurrent_dropout)(batchNorm_reconstruct[i-1])
 
-    predicted_img = Conv2D(filters=32,
-                           kernel_size=kernel_size_tuple,
-                           strides=strides,
-                           activation=output_activation,
-                           padding=padding, 
-                           data_format=data_format,
-                           dilation_rate=dilation_rate,
-                           use_bias=use_bias,
-                           kernel_initializer=kernel_initializer,
-                           bias_initializer=bias_initializer,
-                           kernel_regularizer=kernel_regularizer,
-                           bias_regularizer=bias_regularizer,
-                           activity_regularizer=activity_regularizer,
-                           kernel_constraint=kernel_constraint,
-                           bias_constraint=bias_constraint)(batchNorm_layers[-1])
+        batchNorm_reconstruct[i] = BatchNormalization()(reconstruct_layers[i])
+
+    reconstruct_imgs = Conv2D(filters=1,
+                               kernel_size=kernel_size_tuple,
+                               strides=strides,
+                               activation=output_activation,
+                               padding=padding, 
+                               data_format=data_format,
+                               dilation_rate=dilation_rate,
+                               use_bias=use_bias,
+                               kernel_initializer=kernel_initializer,
+                               bias_initializer=bias_initializer,
+                               kernel_regularizer=kernel_regularizer,
+                               bias_regularizer=bias_regularizer,
+                               activity_regularizer=activity_regularizer,
+                               kernel_constraint=kernel_constraint,
+                               bias_constraint=bias_constraint)(batchNorm_reconstruct[-1])
 
     predicted_img = Conv2D(filters=1,
                            kernel_size=kernel_size_tuple,
@@ -567,7 +576,7 @@ def _create_model_with_tensorflow_2(model_params, compile_params):
                            kernel_constraint=kernel_constraint,
                            bias_constraint=bias_constraint)(batchNorm_layers[-1])
 
-    model = keras.Model(inputs=[source], outputs=[predicted_img])
+    model = keras.Model(inputs=[source], outputs=[reconstruct_imgs, predicted_img])
 
     # Compile parameters
     optimizer = keras.optimizers.SGD(lr=1e-4)
