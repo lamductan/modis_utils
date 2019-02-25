@@ -267,7 +267,7 @@ def _create_model_with_tensorflow_1(model_params, compile_params):
 
     #batchNorm_layers[-1] = BatchNormalization()(convLSTM_layers[-1])
     #last_layer = batchNorm_layers[-1]
-    dense_layer = Dense(convLSTM_layers[-1])
+    dense_layer = Dense()(convLSTM_layers[-1])
     last_layer = dense_layer
 
     predicted_img = Conv2D(filters=1, 
