@@ -269,7 +269,7 @@ def _create_model_with_tensorflow_1(model_params, compile_params):
     #last_layer = batchNorm_layers[-1]
     flatten_layer = Flatten()(convLSTM_layers[-1])
     dense_layer = Dense(1)(flatten_layer)
-    last_layer = Reshape(filters, input_shape[1], input_shape[2], input_shape[3])
+    last_layer = Reshape((filters, input_shape[1], input_shape[2], input_shape[3]))
 
     predicted_img = Conv2D(filters=1, 
                            kernel_size=kernel_size_tuple,
