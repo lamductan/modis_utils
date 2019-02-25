@@ -4,7 +4,7 @@ import os
 import tensorflow as tf
 import tensorflow.keras as keras
 from tensorflow.python.keras.models import Sequential, model_from_json, load_model
-from tensorflow.python.keras.layers import Dense, Dropout, Activation, Flatten
+from tensorflow.python.keras.layers import Dense, Dropout, Activation, Flatten, Reshape
 from tensorflow.python.keras.layers import Convolution1D, MaxPooling1D
 from tensorflow.python.keras.layers import Conv1D, Conv2D
 from tensorflow.python.keras.layers import GRU, LSTM
@@ -267,8 +267,9 @@ def _create_model_with_tensorflow_1(model_params, compile_params):
 
     #batchNorm_layers[-1] = BatchNormalization()(convLSTM_layers[-1])
     #last_layer = batchNorm_layers[-1]
-    dense_layer = Dense()(convLSTM_layers[-1])
-    last_layer = dense_layer
+    flatten_layer = Flatten()(convLSTM_layers[-1])
+    dense_layer = Dense(1)(flatten_layer)
+    last_layer = Reshape(filters, input_shape[1], input_shape[2], input_shape[3])
 
     predicted_img = Conv2D(filters=1, 
                            kernel_size=kernel_size_tuple,
