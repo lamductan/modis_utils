@@ -265,11 +265,8 @@ def _create_model_with_tensorflow_1(model_params, compile_params):
                                     dropout=dropout,
                                     recurrent_dropout=recurrent_dropout)(batchNorm_layers[-2])
 
-    #batchNorm_layers[-1] = BatchNormalization()(convLSTM_layers[-1])
-    #last_layer = batchNorm_layers[-1]
-    flatten_layer = Flatten()(convLSTM_layers[-1])
-    dense_layer = Dense(1)(flatten_layer)
-    last_layer = Reshape((input_shape[1], input_shape[2], filters))(dense_layer)
+    batchNorm_layers[-1] = BatchNormalization()(convLSTM_layers[-1])
+    last_layer = batchNorm_layers[-1]
 
     predicted_img = Conv2D(filters=1, 
                            kernel_size=kernel_size_tuple,
@@ -664,9 +661,229 @@ def _create_model_with_tensorflow_2(model_params, compile_params):
         metrics=metrics)
     return model
 
+def _create_model_with_tensorflow_3(model_params, compile_params):
+    input_shape = model_params['input_shape']
+    n_hidden_layers = 3
 
-def create_model_with_tensorflow(model_params, compile_params):
-    if not isinstance(model_params['filters'], list):
-        return _create_model_with_tensorflow_1(model_params, compile_params)
+    filters = 16
+    kernel_size = 5
+    strides = (1, 1)
+    padding = 'valid'
+    data_format = None
+    dilation_rate = (1, 1)
+    activation = 'tanh'
+    recurrent_activation = 'hard_sigmoid'
+    use_bias = True
+    kernel_initializer = 'glorot_uniform'
+    recurrent_initializer = 'orthogonal'
+    bias_initializer = 'zeros'
+    unit_forget_bias = True
+    kernel_regularizer = None
+    recurrent_regularizer = None
+    bias_regularizer=None
+    activity_regularizer = None
+    kernel_constraint = None
+    recurrent_constraint = None
+    bias_constraint = None
+    return_sequences = False
+    go_backwards = False
+    stateful = False
+    dropout = 0.0
+    recurrent_dropout = 0.0
+    output_activation = 'sigmoid'
+
+    if 'filters' in model_params.keys():
+        filters = model_params['filters']
+    if 'kernel_size' in model_params.keys():
+        kernel_size = model_params['kernel_size']
+    if 'strides' in model_params.keys():
+        strides = model_params['strides']
+    if 'padding' in model_params.keys():
+        padding = model_params['padding']
+    if 'data_format' in model_params.keys():
+        data_format = model_params['data_format']
+    if 'dilation_rate' in model_params.keys():
+        dilation_rate = model_params['dilation_rate']
+
+    if 'activation' in model_params.keys():
+        activation = model_params['activation']
+    if 'recurrent_activation' in model_params.keys():
+        recurrent_activation = model_params['recurrent_activation']
+    if 'use_bias' in model_params.keys():
+        use_bias = model_params['use_bias']
+
+    if 'kernel_initializer' in model_params.keys():
+        kernel_initializer = model_params['kernel_initializer']
+    if 'recurrent_initializer' in model_params.keys():
+        recurrent_initializer = model_params['recurrent_initializer']
+    if 'bias_initializer' in model_params.keys():
+        bias_initializer = model_params['bias_initializer']
+    if 'unit_forget_bias' in model_params.keys():
+        unit_forget_bias = model_params['unit_forget_bias']
+    if 'kernel_regularizer' in model_params.keys():
+        kernel_regularizer = model_params['kernel_regularizer']
+    if 'recurrent_regularizer' in model_params.keys():
+        recurrent_regularizer = model_params['recurrent_regularizer']
+    if 'bias_regularizer' in model_params.keys():
+        bias_regularizer = model_params['bias_regularizer']
+    if 'activity_regularizer' in model_params.keys():
+        activity_regularizer = model_params['activity_regularizer']
+
+    if 'kernel_constraint' in model_params.keys():
+        kernel_constraint = model_params['kernel_constraint']
+    if 'recurrent_constraint' in model_params.keys():
+        recurrent_constraint = model_params['recurrent_constraint']
+    if 'bias_constraint' in model_params.keys():
+        bias_constraint = model_params['bias_constraint']
+    if 'go_backwards' in model_params.keys():
+        go_backwards = model_params['go_backwards']
+    if 'stateful' in model_params.keys():
+        stateful = model_params['stateful']
+    if 'dropout' in model_params.keys():
+        dropout = model_params['dropout']
+    if 'recurrent_dropout' in model_params.keys():
+        recurrent_dropout = model_params['recurrent_dropout']
+
+    if 'output_activation' in model_params.keys():
+        output_activation = model_params['output_activation']
+    if 'n_hidden_layers' in model_params.keys():
+        n_hidden_layers = model_params['n_hidden_layers']
+
+    kernel_size_tuple = (kernel_size, kernel_size)
+    n_hidden_layers += 1
+
+    source = keras.Input(
+        name='seed', shape=input_shape, dtype=tf.float32)
+
+    convLSTM_layers = [0]*(n_hidden_layers)
+    batchNorm_layers = [0]*(n_hidden_layers)
+ 
+    convLSTM_layers[0] = ConvLSTM2D(filters=filters, 
+                                    kernel_size=kernel_size_tuple,
+                                    strides=strides,
+                                    padding=padding,
+                                    data_format=data_format,
+                                    dilation_rate=dilation_rate,
+                                    activation=activation,
+                                    recurrent_activation=recurrent_activation,
+                                    use_bias=use_bias,
+                                    kernel_initializer=kernel_initializer,
+                                    recurrent_initializer=recurrent_initializer,
+                                    bias_initializer=bias_initializer,
+                                    unit_forget_bias=unit_forget_bias,
+                                    kernel_regularizer=kernel_regularizer,
+                                    recurrent_regularizer=recurrent_regularizer,
+                                    bias_regularizer=bias_regularizer,
+                                    activity_regularizer=activity_regularizer,
+                                    kernel_constraint=kernel_constraint,
+                                    bias_constraint=bias_constraint,
+                                    return_sequences=True,
+                                    go_backwards=go_backwards,
+                                    stateful=stateful,
+                                    dropout=dropout,
+                                    recurrent_dropout=recurrent_dropout)(source)
+    batchNorm_layers[0] = BatchNormalization()(convLSTM_layers[0])
+
+    for i in range(1, n_hidden_layers - 1):
+        convLSTM_layers[i] = ConvLSTM2D(filters=filters, 
+                                        kernel_size=kernel_size_tuple,
+                                        strides=strides,
+                                        padding=padding,
+                                        data_format=data_format,
+                                        dilation_rate=dilation_rate,
+                                        activation=activation,
+                                        recurrent_activation=recurrent_activation,
+                                        use_bias=use_bias,
+                                        kernel_initializer=kernel_initializer,
+                                        recurrent_initializer=recurrent_initializer,
+                                        bias_initializer=bias_initializer,
+                                        unit_forget_bias=unit_forget_bias,
+                                        kernel_regularizer=kernel_regularizer,
+                                        recurrent_regularizer=recurrent_regularizer,
+                                        bias_regularizer=bias_regularizer,
+                                        activity_regularizer=activity_regularizer,
+                                        kernel_constraint=kernel_constraint,
+                                        bias_constraint=bias_constraint,
+                                        return_sequences=True,
+                                        go_backwards=go_backwards,
+                                        stateful=stateful,
+                                        dropout=dropout,
+                                        recurrent_dropout=recurrent_dropout)(batchNorm_layers[i-1])
+
+        batchNorm_layers[i] = BatchNormalization()(convLSTM_layers[i])
+    
+    convLSTM_layers[-1] = ConvLSTM2D(filters=1, 
+                                    kernel_size=kernel_size_tuple,
+                                    strides=strides,
+                                    padding=padding,
+                                    data_format=data_format,
+                                    dilation_rate=dilation_rate,
+                                    activation=activation,
+                                    recurrent_activation=recurrent_activation,
+                                    use_bias=use_bias,
+                                    kernel_initializer=kernel_initializer,
+                                    recurrent_initializer=recurrent_initializer,
+                                    bias_initializer=bias_initializer,
+                                    unit_forget_bias=unit_forget_bias,
+                                    kernel_regularizer=kernel_regularizer,
+                                    recurrent_regularizer=recurrent_regularizer,
+                                    bias_regularizer=bias_regularizer,
+                                    activity_regularizer=activity_regularizer,
+                                    kernel_constraint=kernel_constraint,
+                                    bias_constraint=bias_constraint,
+                                    return_sequences=False,
+                                    go_backwards=go_backwards,
+                                    stateful=stateful,
+                                    dropout=dropout,
+                                    recurrent_dropout=recurrent_dropout)(batchNorm_layers[-2])
+
+    #batchNorm_layers[-1] = BatchNormalization()(convLSTM_layers[-1])
+    #last_layer = batchNorm_layers[-1]
+    fflatten_layer = Flatten()(convLSTM_layers[-1])
+    dense_layer = Dense(input_shape[1]*input_shape[2])(flatten_layer)
+    last_layer = Reshape((input_shape[1], input_shape[2], 1))(dense_layer)
+
+    predicted_img = Conv2D(filters=1, 
+                           kernel_size=kernel_size_tuple,
+                           strides=strides,
+                           activation=output_activation,
+                           padding=padding, 
+                           data_format=data_format,
+                           dilation_rate=dilation_rate,
+                           use_bias=use_bias,
+                           kernel_initializer=kernel_initializer,
+                           bias_initializer=bias_initializer,
+                           kernel_regularizer=kernel_regularizer,
+                           bias_regularizer=bias_regularizer,
+                           activity_regularizer=activity_regularizer,
+                           kernel_constraint=kernel_constraint,
+                           bias_constraint=bias_constraint)(last_layer)
+    model = keras.Model(inputs=[source], outputs=[predicted_img])
+
+    # Compile parameters
+    optimizer = keras.optimizers.SGD(lr=1e-4)
+    loss = 'mse'
+    metrics = ['mse']
+
+    if 'optimizer' in compile_params.keys():
+        optimizer = compile_params['optimizer']
+    if 'loss' in compile_params.keys():
+        loss = compile_params['loss']
+    if 'metrics' in compile_params.keys():
+        metrics= compile_params['metrics']
+
+    model.compile(
+        optimizer=optimizer,
+        loss=loss,
+        metrics=metrics)
+    return model
+
+
+def create_model_with_tensorflow(model_params, compile_params, fn=None):
+    if fn is None:
+        if not isinstance(model_params['filters'], list):
+            return _create_model_with_tensorflow_1(model_params, compile_params)
+        else:
+            return _create_model_with_tensorflow_2(model_params, compile_params)
     else:
-        return _create_model_with_tensorflow_2(model_params, compile_params)
+        return fn(model_params, compile_params)
