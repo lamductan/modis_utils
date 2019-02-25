@@ -839,7 +839,7 @@ def _create_model_with_tensorflow_3(model_params, compile_params):
 
     #batchNorm_layers[-1] = BatchNormalization()(convLSTM_layers[-1])
     #last_layer = batchNorm_layers[-1]
-    fflatten_layer = Flatten()(convLSTM_layers[-1])
+    flatten_layer = Flatten()(convLSTM_layers[-1])
     dense_layer = Dense(input_shape[1]*input_shape[2])(flatten_layer)
     last_layer = Reshape((input_shape[1], input_shape[2], 1))(dense_layer)
 
