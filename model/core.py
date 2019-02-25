@@ -265,7 +265,10 @@ def _create_model_with_tensorflow_1(model_params, compile_params):
                                     dropout=dropout,
                                     recurrent_dropout=recurrent_dropout)(batchNorm_layers[-2])
 
-    batchNorm_layers[-1] = BatchNormalization()(convLSTM_layers[-1])
+    #batchNorm_layers[-1] = BatchNormalization()(convLSTM_layers[-1])
+    #last_layer = batchNorm_layers[-1]
+    dense_layer = Dense(convLSTM_layers[-1])
+    last_layer = dense_layer
 
     predicted_img = Conv2D(filters=1, 
                            kernel_size=kernel_size_tuple,
@@ -281,7 +284,7 @@ def _create_model_with_tensorflow_1(model_params, compile_params):
                            bias_regularizer=bias_regularizer,
                            activity_regularizer=activity_regularizer,
                            kernel_constraint=kernel_constraint,
-                           bias_constraint=bias_constraint)(batchNorm_layers[-1])
+                           bias_constraint=bias_constraint)(last_layer)
     model = keras.Model(inputs=[source], outputs=[predicted_img])
 
     # Compile parameters

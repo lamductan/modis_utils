@@ -466,7 +466,7 @@ def test_by_data_file(reservoir_index, test_index, data_file_path,
         mask_cloud = 255
 
     if result_dir is not None:
-        log_path = os.path.join(result_dir, 'log.txt')
+        log_path = os.path.join(result_dir, 'log.csv')
         metric = mse_with_mask(groundtruth, mask, predict, mask_cloud)
         with open(log_path, 'a') as f:
             f.write('{:03},{:04f}'.format(test_index, metric))
