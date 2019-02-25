@@ -886,4 +886,5 @@ def create_model_with_tensorflow(model_params, compile_params, fn=None):
         else:
             return _create_model_with_tensorflow_2(model_params, compile_params)
     else:
-        return fn(model_params, compile_params)
+        if fn == '_create_model_with_tensorflow_3':
+            return _create_model_with_tensorflow_3(model_params, compile_params)
