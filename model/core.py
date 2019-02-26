@@ -1011,7 +1011,7 @@ def _create_model_with_tensorflow_3(model_params, compile_params):
     predicted_mask = Conv2D(filters=1,
                            kernel_size=kernel_size_tuple,
                            strides=strides,
-                           activation=output_activation,
+                           activation='sigmoid',
                            padding=padding, 
                            data_format=data_format,
                            dilation_rate=dilation_rate,
