@@ -3,6 +3,7 @@ import numpy as np
 import rasterio as rio
 from scipy import misc
 import multiprocessing as mp
+from skimage.segmentation import find_boundaries
 
 from modis_utils.preprocessing.generators.generators import SimpleImageGenerator
 from modis_utils.misc import create_data_file, get_data, scale_data
@@ -16,15 +17,17 @@ from modis_utils.misc import get_data_paths, get_target_paths, get_mask_paths
 from modis_utils.misc import get_data_merged_from_paths
 from modis_utils.misc import get_buffer
 
-def random_crop_func(x, min_rect, crop_size=32, random_crop=True):
+def random_crop_func_1(x, offset_x, offset_y, crop_size=32, random_crop=True):
     '''x.shape = (n_data, time_step, img_height, img_width, channels) '''
-    h, w = x.shape[2:4]
+    #h, w = x.shape[2:4]
+    '''
     xmin, ymin, xmax, ymax = min_rect
     while True:
         offset_y = np.random.randint(ymin, ymax + 1)
         offset_x = np.random.randint(xmin, xmax + 1)
         if offset_x + crop_size < w and offset_y + crop_size < h:
             break
+    '''
     return x[:,:, offset_y : offset_y+crop_size, offset_x : offset_x+crop_size]
 
 def random_crop_func(x, crop_size=32, random_crop=True):
@@ -235,60 +238,6 @@ def _merge_data_with_last(merge_data_dir, n_data, data_index_shuffle, list_data,
         p.join()
 
 
-def merge_data_augment_train_val_all_reservoirs(data_dir,
-                                 used_band,
-                                 time_steps,
-                                 crop_size,
-                                 batch_size=1024,
-                                 n_threads=mp.cpu_count() - 2):
-    """Merge multiple crop files for speed up uploading and training
-    on Google Colab."
-
-    Example:
-        merge_data_augment_train_val(data_dir='raw_data/MOD13Q1',
-                                     used_band='NDVI',
-                                     time_steps=12,
-                                     crop_size=32,
-                                     batch_size=1024,
-                                     n_threads=6)
-
-    Args:
-        data_dir: String, directory where stores image data.
-        used_band: String, a string represents name of used band.
-        time_steps: Integer, time steps (length) of LSTM sequence.
-        crop_size: Integer, size of crop.
-        batch_size: Integer, number of crop files merged to one unique file.
-        n_threads: Integer, number of parallel threads. It is recommended to
-            set this parameter equal to your core number minus 2.
-    """
-    data_augment_dir = os.path.join('data_augment', data_dir,
-                                    str(crop_size), str(time_steps))
-    list_used_reservoirs = list(map(int, os.listdir(data_augment_dir)))
-    list_train_data = []
-    list_val_data = []
-    for used_reservoir in list_used_reservoirs:
-        train_path = get_data_augment_dir(data_dir, used_reservoir, used_band,
-                                          time_steps, 'train', crop_size)
-        val_path = get_data_augment_dir(data_dir, used_reservoir, used_band,
-                                        time_steps, 'val', crop_size)
-        list_train_data += [os.path.join(train_path, data_index) for data_index 
-                            in os.listdir(train_path)]
-        list_val_data += [os.path.join(val_path, data_index) for data_index 
-                          in os.listdir(val_path)]
-    n_train = len(list_train_data)
-    n_val = len(list_val_data)
-    train_index_shuffle = np.random.permutation(n_train)
-    val_index_shuffle = np.random.permutation(n_val)
-    
-    merge_data_train_dir = get_data_augment_merged_dir(data_dir, used_band,
-                                            time_steps, 'train', crop_size)
-    merge_data_val_dir = get_data_augment_merged_dir(data_dir, used_band,
-                                            time_steps, 'val', crop_size)
-    _merge_data_with_last(merge_data_train_dir, n_train, train_index_shuffle,
-                          list_train_data, batch_size, n_threads)
-    _merge_data_with_last(merge_data_val_dir, n_val, val_index_shuffle,
-                          list_val_data, batch_size, n_threads)
-
 def merge_data_augment_train_val(data_dir,
                                  used_reservoir,
                                  used_band,
@@ -301,7 +250,6 @@ def merge_data_augment_train_val(data_dir,
 
     Example:
         merge_data_augment_train_val(data_dir='raw_data/MOD13Q1',
-                                     used_reservoir=0,
                                      used_band='NDVI',
                                      time_steps=12,
                                      crop_size=32,
@@ -319,16 +267,20 @@ def merge_data_augment_train_val(data_dir,
     """
     data_augment_dir = os.path.join('data_augment', data_dir,
                                     str(crop_size), str(time_steps))
+    #list_used_reservoirs = list(map(int, os.listdir(data_augment_dir)))
+    list_used_reservoirs = [used_reservoir]
+
     list_train_data = []
     list_val_data = []
-    train_path = get_data_augment_dir(data_dir, used_reservoir, used_band,
-                                      time_steps, 'train', crop_size)
-    val_path = get_data_augment_dir(data_dir, used_reservoir, used_band,
-                                    time_steps, 'val', crop_size)
-    list_train_data += [os.path.join(train_path, data_index) for data_index 
-                        in os.listdir(train_path)]
-    list_val_data += [os.path.join(val_path, data_index) for data_index 
-                      in os.listdir(val_path)]
+    for used_reservoir in list_used_reservoirs:
+        train_path = get_data_augment_dir(data_dir, used_reservoir, used_band,
+                                          time_steps, 'train', crop_size)
+        val_path = get_data_augment_dir(data_dir, used_reservoir, used_band,
+                                        time_steps, 'val', crop_size)
+        list_train_data += [os.path.join(train_path, data_index) for data_index 
+                            in os.listdir(train_path)]
+        list_val_data += [os.path.join(val_path, data_index) for data_index 
+                          in os.listdir(val_path)]
     n_train = len(list_train_data)
     n_val = len(list_val_data)
     train_index_shuffle = np.random.permutation(n_train)
@@ -355,8 +307,7 @@ def augment_one_reservoir_without_cache(data_dir='raw/MOD13Q1',
                                         test_list_years=None,
                                         mask_data_dir='mask_data/MOD13Q1',
                                         n_samples=100,
-                                        recreated_data_file=False,
-                                        Zhang=False):
+                                        recreated_data_file=False):
     """Generate random crop augmentation on reservoir.
 
     Example:
@@ -371,8 +322,7 @@ def augment_one_reservoir_without_cache(data_dir='raw/MOD13Q1',
                                             test_list_years=None,
                                             mask_data_dir='mask_data/MOD13Q1',
                                             n_samples=100,
-                                            recreated_data_file=False,
-                                            Zhang=False)
+                                            recreated_data_file=False)
 
     Args:
         data_dir: String, directory where stores image data.
@@ -433,10 +383,10 @@ def augment_one_reservoir_without_cache(data_dir='raw/MOD13Q1',
                                        time_steps, data_type, 'mask')
         mask_paths = get_mask_paths(mask_file)
 
-        _generate_without_cache_and_buffer(data_paths, target_paths, mask_paths,
-                                           datagen, data_dir, used_reservoir, used_band, 
-                                           time_steps, list_years[data_type], data_type, 
-                                           mask_data_dir, n_samples, crop_size)
+        _generate_on_boundaries(data_paths, target_paths, mask_paths,
+                                datagen, data_dir, used_reservoir, used_band, 
+                                time_steps, list_years[data_type], data_type, 
+                                mask_data_dir, n_samples, crop_size)
     return True
 
 
@@ -446,14 +396,71 @@ def _generate_without_cache(data_paths, target_paths, mask_paths,
                             n_samples, crop_size):
     buffer = get_buffer(used_reservoir)
     pos = np.where(buffer==1)
-    min_rect = (pos[0].min(), pos[1].min(), pos[0].max(), pos[1].max())
+    #min_rect = (pos[0].min(), pos[1].min(), pos[0].max(), pos[1].max())
     n_data = len(data_paths)
+    n_pos = len(pos[0])
     cnt = 0
     for k in range(n_data):
         data_merged = get_data_merged_from_paths(data_paths[k], target_paths[k],
                                                  mask_paths[k])
+        h, w = data_merged.shape[2:4]
+        already = set()
         for i in range(n_samples):
-            batch = random_crop_func(data_merged, min_rect)
+            while True:
+                offset_x = pos[0][np.random.randint(n_pos)]
+                offset_y = pos[1][np.random.randint(n_pos)]
+                if offset_x + crop_size < w and offset_y + crop_size < h and \
+                  (offset_x, offset_y) not in already:
+                    break
+            already.add((offset_x, offset_y))
+            batch = random_crop_func_1(data_merged, offset_x, offset_y)
+            for j in range(batch.shape[0]):
+                cur = batch[j]
+                data = cur[:-2]
+                data = np.expand_dims(data, axis=-1)
+                target = np.expand_dims(cur[-2:-1], axis=-1)
+                mask = np.expand_dims(cur[-1:], axis=-1)
+                target_mask = np.concatenate((target, mask), axis=-1)
+                data_augment_dir = get_data_augment_dir(data_dir,
+                                                        used_reservoir,
+                                                        used_band,
+                                                        time_steps,
+                                                        data_type,
+                                                        crop_size)
+                if not os.path.isdir(data_augment_dir):
+                    os.makedirs(data_augment_dir)
+                file_path = os.path.join(data_augment_dir,
+                                         '{}.dat'.format(cnt))
+                cnt += 1
+                cache_data((data, target_mask), file_path)
+            del batch, cur, data, target, mask, target_mask
+
+def _generate_on_boundaries(data_paths, target_paths, mask_paths,
+                            datagen, data_dir, used_reservoir, used_band, time_steps,
+                            list_years, data_type, mask_data_dir,
+                            n_samples, crop_size):
+    n_data = len(data_paths)
+    cnt = 0
+    half_crop_size = crop_size//2
+    for k in range(n_data):
+        data_merged = get_data_merged_from_paths(data_paths[k], target_paths[k],
+                                                 mask_paths[k])
+        target_img = data_merged[0,-2,:,:]
+        h, w = data_merged.shape[2:4]
+        already = set()
+        boundaries = find_boundaries(target_img)
+        pos = np.where(boundaries)
+        n_pos = len(pos[0])
+        for i in range(n_samples):
+            while True:
+                offset_x = pos[0][np.random.randint(n_pos)]
+                offset_y = pos[1][np.random.randint(n_pos)]
+                if offset_x + half_crop_size - 1 < w and offset_y + half_crop_size - 1 < h and \
+                  offset_x - half_crop_size >= 0 and offset_y - half_crop_size >= 0 and \
+                  (offset_x, offset_y) not in already:
+                    break
+            already.add((offset_x, offset_y))
+            batch = random_crop_func_1(data_merged, offset_x - half_crop_size, offset_y - half_crop_size)
             for j in range(batch.shape[0]):
                 cur = batch[j]
                 data = cur[:-2]

@@ -44,7 +44,7 @@ def mask_water_tf(img_tf, offset=0.1):
 
 
 def mask_lake_img(img, band='NDVI', offset=1000):
-    offset = WATER_THRESHOLD[band]
+    #offset = WATER_THRESHOLD[band]
     water_mask = np.where(img < offset, 1, 0)
     visited, label = measurements.label(water_mask)
     area = measurements.sum(water_mask, visited,
