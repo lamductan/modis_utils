@@ -83,6 +83,7 @@ def predict_and_visualize_by_data_file(data_file_path, target_file_path,
     
     time_steps = example.shape[0]
     plt.figure(figsize=(10, 10))
+    pred = model.predict(example[np.newaxis, :, :, :, np.newaxis])
     if isinstance(pred, list):
         G = gridspec.GridSpec(3, time_steps)
     else:
@@ -92,7 +93,6 @@ def predict_and_visualize_by_data_file(data_file_path, target_file_path,
         axe = plt.subplot(G[0, i])
         axe.imshow(img)
 
-    pred = model.predict(example[np.newaxis, :, :, :, np.newaxis])
     #pred = scale_data(pred, predict_range, groundtruth_range)
     pred_img = pred[0,:,:,0]
     if isinstance(pred, list):
