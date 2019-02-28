@@ -449,8 +449,13 @@ def test_by_data_file(reservoir_index, test_index, data_file_path,
     else:
         compile_params['metrics'] = ['mse']
 
+    if 'fn' in model_params_non_gridding.keys():
+        fn = model_params_non_gridding['fn']
+    else:
+        fn = None
+
     model_non_gridding = create_model_with_tensorflow(model_params_non_gridding,
-                                                      compile_params)
+                                                      compile_params, fn=fn)
     if model_params_non_gridding['output_activation'] == 'tanh':
         predict_range = (-1.0, 1.0)
     else:
