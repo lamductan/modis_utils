@@ -73,31 +73,44 @@ def predict_and_visualize(data, target, model,
 def predict_and_visualize_by_data_file(data_file_path, target_file_path,
                                        model, which=0, result_dir=None,
                                        groundtruth_range=(-0.2001,1),
-                                       predict_range=(-1,1)):
+                                       predict_range=(-1,1), mask_file_path=None):
     example = get_data_test(data_file_path, which)
     target_example = get_target_test(target_file_path, which)
+    if mask_file_path is not None:
+        mask_example = get_target_test(mask_file_path, which)
+        mask_example[mask_example == -1] = 0
     target_example = scale_normalized_data(target_example, groundtruth_range)
     
     time_steps = example.shape[0]
     plt.figure(figsize=(10, 10))
-    G = gridspec.GridSpec(2, time_steps)
+    if isinstance(pred, list):
+        G = gridspec.GridSpec(3, time_steps)
+    else:
+        G = gridspec.GridSpec(2, time_steps)
     
     for i, img in enumerate(example):
         axe = plt.subplot(G[0, i])
         axe.imshow(img)
 
     pred = model.predict(example[np.newaxis, :, :, :, np.newaxis])
+    #pred = scale_data(pred, predict_range, groundtruth_range)
+    pred_img = pred[0,:,:,0]
     if isinstance(pred, list):
-        pred = pred[1]
-    pred = scale_data(pred, predict_range, groundtruth_range)
-    pred = pred[0,:,:,0]
+        pred_mask = pred[0,:,:,1]
+        ax_mask_groundtruth = plt.subplot(G[2, :time_steps//2])
+        ax_mask_groundtruth.imshow(mask_example)
+        ax_mask_groundtruth.imshow('mask_groundtruth')
+
+        ax_mask_pred = plt.subplot(G[2, time_steps//2:2*(time_steps//2)])
+        ax_mask_pred.imshow(pred_mask)
+        ax_mask_pred.set_title('mask_predict')
 
     ax_groundtruth = plt.subplot(G[1, :time_steps//2])
     ax_groundtruth.imshow(target_example)
     ax_groundtruth.set_title('groundtruth')
     
     ax_pred = plt.subplot(G[1, time_steps//2:2*(time_steps//2)])
-    ax_pred.imshow(pred)
+    ax_pred.imshow(pred_img)
     ax_pred.set_title('predict')
 
     if result_dir is not None:
@@ -114,7 +127,9 @@ def predict_and_visualize_by_data_file(data_file_path, target_file_path,
 
         plt.savefig(os.path.join(result_dir, '{}.png'.format(which))) 
 
-    return target_example, pred
+    if isinstance(pred, list):
+        return (target_example, pred_img, mask_example, mask_pred)
+    return (target_example, pred_img)
 
 
 def predict_and_visualize_by_data_file_1(data_file_path, target_file_path, mask_file_path,
@@ -449,14 +464,15 @@ def test_by_data_file(reservoir_index, test_index, data_file_path,
     except:
         pass
 
-    groundtruth, predict = predict_and_visualize_by_data_file(
+    output = predict_and_visualize_by_data_file(
         data_file_path=data_file_path,
         target_file_path=target_file_path,
         which=test_index,
         model=model_non_gridding,
         groundtruth_range=groundtruth_range,
         predict_range=predict_range,
-        result_dir=result_dir)
+        result_dir=result_dir,
+        mask_file_path=mask_file_path)
 
     mask = get_target_test(mask_file_path, test_index)
 
@@ -472,5 +488,5 @@ def test_by_data_file(reservoir_index, test_index, data_file_path,
             f.write('{:03},{:04f}'.format(test_index, metric))
             f.write('\n')
         f.close()
-    return groundtruth, predict, mask
+    return output, mask
 
