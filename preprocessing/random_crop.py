@@ -455,12 +455,13 @@ def _generate_on_boundaries(data_paths, target_paths, mask_paths,
             while True:
                 offset_x = pos[0][np.random.randint(n_pos)]
                 offset_y = pos[1][np.random.randint(n_pos)]
-                if offset_x + half_crop_size - 1 < w and offset_y + half_crop_size - 1 < h and \
+                if offset_x + half_crop_size + 1 < w and offset_y + half_crop_size + 1 < h and \
                   offset_x - half_crop_size >= 0 and offset_y - half_crop_size >= 0 and \
                   (offset_x, offset_y) not in already:
                     break
             already.add((offset_x, offset_y))
-            batch = random_crop_func_1(data_merged, offset_x - half_crop_size, offset_y - half_crop_size)
+            batch = random_crop_func_1(data_merged, offset_x - half_crop_size,
+                    offset_y - half_crop_size, crop_size=crop_size)
             for j in range(batch.shape[0]):
                 cur = batch[j]
                 data = cur[:-2]
@@ -493,7 +494,7 @@ def _generate_without_cache_and_buffer(data_paths, target_paths, mask_paths,
         data_merged = get_data_merged_from_paths(data_paths[k], target_paths[k],
                                                  mask_paths[k])
         for i in range(n_samples):
-            batch = random_crop_func(data_merged)
+            batch = random_crop_func(data_merged, crop_size=crop_size)
             for j in range(batch.shape[0]):
                 cur = batch[j]
                 data = cur[:-2]
