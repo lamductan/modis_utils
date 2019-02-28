@@ -131,7 +131,7 @@ def predict_and_visualize_by_data_file(data_file_path, target_file_path,
         plt.savefig(os.path.join(result_dir, '{}.png'.format(which))) 
 
     if isinstance(pred, list):
-        return (target_example, pred_img, mask_example, mask_pred)
+        return (target_example, pred_img, mask_example, pred_mask)
     return (target_example, pred_img)
 
 
