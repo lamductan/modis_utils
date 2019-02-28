@@ -86,17 +86,20 @@ def predict_and_visualize_by_data_file(data_file_path, target_file_path,
     pred = model.predict(example[np.newaxis, :, :, :, np.newaxis])
     if isinstance(pred, list):
         G = gridspec.GridSpec(3, time_steps)
+        pred_img = pred[0]
+        pred_mask = pred[1]
     else:
         G = gridspec.GridSpec(2, time_steps)
+        pred_img = pred
     
     for i, img in enumerate(example):
         axe = plt.subplot(G[0, i])
         axe.imshow(img)
 
     #pred = scale_data(pred, predict_range, groundtruth_range)
-    pred_img = pred[0,:,:,0]
+    pred_img = pred_img[0,:,:,0]
     if isinstance(pred, list):
-        pred_mask = pred[0,:,:,1]
+        pred_mask = pred_mask[0,:,:,0]
         ax_mask_groundtruth = plt.subplot(G[2, :time_steps//2])
         ax_mask_groundtruth.imshow(mask_example)
         ax_mask_groundtruth.imshow('mask_groundtruth')
