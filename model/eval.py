@@ -102,7 +102,7 @@ def predict_and_visualize_by_data_file(data_file_path, target_file_path,
         pred_mask = pred_mask[0,:,:,0]
         ax_mask_groundtruth = plt.subplot(G[2, :time_steps//2])
         ax_mask_groundtruth.imshow(mask_example)
-        ax_mask_groundtruth.imshow('mask_groundtruth')
+        ax_mask_groundtruth.set_title('mask_groundtruth')
 
         ax_mask_pred = plt.subplot(G[2, time_steps//2:2*(time_steps//2)])
         ax_mask_pred.imshow(pred_mask)
