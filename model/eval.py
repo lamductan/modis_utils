@@ -79,7 +79,7 @@ def predict_and_visualize_by_data_file(data_file_path, target_file_path,
     example = get_data_test(data_file_path, which)
     if real_time_steps is not None:
         time_steps = real_time_steps
-        example = example[example.shape[0] - real_time_steps:, :, :, :]
+        example = example[example.shape[0] - real_time_steps:, :, :]
     else:
         time_steps = example.shape[0]
     target_example = get_target_test(target_file_path, which)
