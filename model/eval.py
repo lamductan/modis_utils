@@ -166,10 +166,10 @@ def predict_and_visualize_by_data_file_and_gridding(data_file_path, target_file_
     offset_y = input_seq.shape[2] % crop_size
     input_seq = input_seq[:, offset_x//2:-(offset_x - offset_x//2), \
                           offset_y//2:-(offset_y - offset_y//2)]
-    ground_truth = ground_truth[offset_x//2:-(offset_x - offset_x//2), \
-                                offset_y//2:-(offset_y - offset_y//2)]
+    groundtruth = groundtruth[offset_x//2:-(offset_x - offset_x//2), \
+                              offset_y//2:-(offset_y - offset_y//2)]
 
-    pred_img = np.zeros_like(ground_truth)
+    pred_img = np.zeros_like(groundtruth)
 
     for i in range(input_seq.shape[1] // crop_size):
         for j in range(input_seq.shape[2] // crop_size):
