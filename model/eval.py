@@ -41,12 +41,12 @@ def predict_and_visualize(data, target, model,
         axe = plt.subplot(G[0, i])
         axe.imshow(img)
 
-    target_example = target[which, :, :, 0]
+    groundtruth = target[which, :, :, 0]
     pred = model.predict(data[which][np.newaxis, :, :, :, :])
     del model
 
     ax_groundtruth = plt.subplot(G[1, :time_steps//2])
-    ax_groundtruth.imshow(target_example)
+    ax_groundtruth.imshow(groundtruth)
     ax_groundtruth.set_title('groundtruth')
     
     ax_pred = plt.subplot(G[1, time_steps//2:2*(time_steps//2)])
@@ -67,7 +67,7 @@ def predict_and_visualize(data, target, model,
 
         plt.savefig(os.path.join(result_dir, '{}.png'.format(which))) 
 
-    return target_example, pred[0, :, :, 0]
+    return groundtruth, pred[0, :, :, 0]
 
 
 def predict_and_visualize_by_data_file(data_file_path, target_file_path,
@@ -82,11 +82,11 @@ def predict_and_visualize_by_data_file(data_file_path, target_file_path,
         example = example[example.shape[0] - real_time_steps:, :, :]
     else:
         time_steps = example.shape[0]
-    target_example = get_target_test(target_file_path, which)
+    groundtruth = get_target_test(target_file_path, which)
     if mask_file_path is not None:
-        mask_example = get_target_test(mask_file_path, which)
-        mask_example[mask_example == -1] = 0
-    target_example = scale_normalized_data(target_example, groundtruth_range)
+        mask_groundtruth = get_target_test(mask_file_path, which)
+        mask_groundtruth[mask_groundtruth == -1] = 0
+    groundtruth = scale_normalized_data(groundtruth, groundtruth_range)
     
     plt.figure(figsize=(10, 10))
     pred = model.predict(example[np.newaxis, :, :, :, np.newaxis])
@@ -107,7 +107,7 @@ def predict_and_visualize_by_data_file(data_file_path, target_file_path,
     if isinstance(pred, list):
         pred_mask = pred_mask[0,:,:,0]
         ax_mask_groundtruth = plt.subplot(G[2, :time_steps//2])
-        ax_mask_groundtruth.imshow(mask_example)
+        ax_mask_groundtruth.imshow(mask_groundtruth)
         ax_mask_groundtruth.set_title('mask_groundtruth')
 
         ax_mask_pred = plt.subplot(G[2, time_steps//2:2*(time_steps//2)])
@@ -115,7 +115,7 @@ def predict_and_visualize_by_data_file(data_file_path, target_file_path,
         ax_mask_pred.set_title('mask_predict')
 
     ax_groundtruth = plt.subplot(G[1, :time_steps//2])
-    ax_groundtruth.imshow(target_example)
+    ax_groundtruth.imshow(groundtruth)
     ax_groundtruth.set_title('groundtruth')
     
     ax_pred = plt.subplot(G[1, time_steps//2:2*(time_steps//2)])
@@ -137,16 +137,88 @@ def predict_and_visualize_by_data_file(data_file_path, target_file_path,
         plt.savefig(os.path.join(result_dir, '{}.png'.format(which))) 
 
     if isinstance(pred, list):
-        return (target_example, pred_img, mask_example, pred_mask)
-    return (target_example, pred_img)
+        return (groundtruth, pred_img, mask_groundtruth, pred_mask)
+    return (groundtruth, pred_img)
+
+
+def predict_and_visualize_by_data_file_and_gridding(data_file_path, target_file_path,
+                                                    model, which=0, result_dir=None,
+                                                    groundtruth_range=(-0.2001,1),
+                                                    predict_range=(-1,1),
+                                                    mask_file_path=None,
+                                                    real_time_steps=None):
+    input_seq = get_data_test(data_file_path, which)
+    if real_time_steps is not None:
+        time_steps = real_time_steps
+        input_seq = input_seq[input_seq.shape[0] - real_time_steps:, :, :]
+    else:
+        time_steps = input_seq.shape[0]
+    groundtruth = get_target_test(target_file_path, which)
+    if mask_file_path is not None:
+        mask_groundtruth = get_target_test(mask_file_path, which)
+        mask_groundtruth[mask_groundtruth == -1] = 0
+    groundtruth = scale_normalized_data(groundtruth, groundtruth_range)
+    
+    plt.figure(figsize=(10, 10))
+    
+    offset_x = data.shape[2] % crop_size
+    offset_y = data.shape[3] % crop_size
+    input_seq = input_seq[:, offset_x//2:-(offset_x - offset_x//2), \
+                          offset_y//2:-(offset_y - offset_y//2), :]
+    ground_truth = ground_truth[:, offset_x//2:-(offset_x - offset_x//2), \
+                                offset_y//2:-(offset_y - offset_y//2), :]
+
+    pred_img = np.zeros_like(ground_truth)
+
+    for i in range(input_seq.shape[1] // crop_size):
+        for j in range(input_seq.shape[2] // crop_size):
+            pred = model.predict(input_seq[np.newaxis, :, \
+                                 i*crop_size:(i+1)*crop_size, \
+                                 j*crop_size:(j+1)*crop_size, np.newaxis])
+            pred_img[:, i*crop_size:(i+1)*crop_size, \
+                     j*crop_size:(j+1)*crop_size, :] = pred[1]
+    
+    G = gridspec.GridSpec(2, time_steps)
+    
+    for i, img in enumerate(input_seq):
+        axe = plt.subplot(G[0, i])
+        axe.imshow(img)
+
+    #pred = scale_data(pred, predict_range, groundtruth_range)
+    pred_img = pred_img[0,:,:,0]
+
+    ax_groundtruth = plt.subplot(G[1, :time_steps//2])
+    ax_groundtruth.imshow(groundtruth)
+    ax_groundtruth.set_title('groundtruth')
+    
+    ax_pred = plt.subplot(G[1, time_steps//2:2*(time_steps//2)])
+    ax_pred.imshow(pred_img)
+    ax_pred.set_title('predict')
+
+    if result_dir is not None:
+        #eval = model.evaluate(np.expand_dims(data[which], axis=0), 
+        #                      np.expand_dims(target[which], axis=0))
+        try:
+            os.makedirs(result_dir)
+        except:
+            pass
+
+        #with open(os.path.join(result_dir, 'log.txt'), 'a') as w:
+        #    w.write('{},{}'.format(eval[0], eval[1]))
+        #    w.write('\n')
+
+        plt.savefig(os.path.join(result_dir, '{}.png'.format(which))) 
+
+    return (groundtruth, pred_img)
+
 
 
 def predict_and_visualize_by_data_file_1(data_file_path, target_file_path, mask_file_path,
                                          model, which=0, result_dir=None):
     example = get_data_test(data_file_path, which)
-    target_example = get_target_test(target_file_path, which)
-    mask_example = get_target_test(mask_file_path, which)
-    mask_example = np.where(mask_example == 1, 1, 0)
+    groundtruth = get_target_test(target_file_path, which)
+    mask_groundtruth = get_target_test(mask_file_path, which)
+    mask_groundtruth = np.where(mask_groundtruth == 1, 1, 0)
     
     time_steps = example.shape[0]
     plt.figure(figsize=(10, 10))
@@ -161,14 +233,14 @@ def predict_and_visualize_by_data_file_1(data_file_path, target_file_path, mask_
     mask_pred = pred[1]
 
     ax_groundtruth = plt.subplot(G[1, :time_steps//2])
-    ax_groundtruth.imshow(target_example)
+    ax_groundtruth.imshow(groundtruth)
     ax_groundtruth.set_title('img_groundtruth')
     ax_pred = plt.subplot(G[1, time_steps//2:2*(time_steps//2)])
     ax_pred.imshow(img_pred[0, :, :, 0])
     ax_pred.set_title('img_pred')
 
     ax_mask_groundtruth = plt.subplot(G[2, :time_steps//2])
-    ax_mask_groundtruth.imshow(mask_example)
+    ax_mask_groundtruth.imshow(mask_groundtruth)
     ax_mask_groundtruth.set_title('mask_groundtruth')
     ax_mask_pred = plt.subplot(G[2, time_steps//2:2*(time_steps//2)])
     ax_mask_pred.imshow(mask_pred[0, :, :, 0])
@@ -188,7 +260,7 @@ def predict_and_visualize_by_data_file_1(data_file_path, target_file_path, mask_
 
         plt.savefig(os.path.join(result_dir, '{}.png'.format(which))) 
 
-    return target_example, mask_example, img_pred[0, :, :, 0], mask_pred[0, :, :, 0]
+    return groundtruth, mask_groundtruth, img_pred[0, :, :, 0], mask_pred[0, :, :, 0]
 
 
 def predict_and_visualize_RandomCrop(data, target, model, crop_size,
@@ -287,8 +359,6 @@ def test_not_gridding(reservoir_index,
     test_data, test_target = get_data(data_type='test', 
                                       reservoir_index=reservoir_index, 
                                       time_steps=time_steps)
-    test_data = scale_data(test_data)
-    test_target = scale_data(test_target)
 
     n = test_data.shape[0]
     img_col = test_target.shape[1]
@@ -439,7 +509,7 @@ def to_binary_scale_img(scale_img,
 def test_by_data_file(reservoir_index, test_index, data_file_path,
         target_file_path, mask_file_path, used_band, time_steps,
         img_col, img_row, model_params_path, weight_path, mask_cloud_loss=False,
-        result_dir_prefix=None):
+        result_dir_prefix=None, gridding=False):
     if result_dir_prefix is None:
         result_dir = None
     else:
@@ -478,7 +548,12 @@ def test_by_data_file(reservoir_index, test_index, data_file_path,
     except:
         pass
 
-    output = predict_and_visualize_by_data_file(
+    if gridding:
+        fn = predict_and_visualize_by_data_file_and_gridding
+    else:
+        fn = predict_and_visualize_by_data_file
+
+    output = fn(
         data_file_path=data_file_path,
         target_file_path=target_file_path,
         which=test_index,
