@@ -146,7 +146,8 @@ def predict_and_visualize_by_data_file_and_gridding(data_file_path, target_file_
                                                     groundtruth_range=(-0.2001,1),
                                                     predict_range=(-1,1),
                                                     mask_file_path=None,
-                                                    real_time_steps=None):
+                                                    real_time_steps=None,
+                                                    crop_size=32):
     input_seq = get_data_test(data_file_path, which)
     if real_time_steps is not None:
         time_steps = real_time_steps
