@@ -177,7 +177,7 @@ def predict_and_visualize_by_data_file_and_gridding(data_file_path, target_file_
                                  i*crop_size:(i+1)*crop_size, \
                                  j*crop_size:(j+1)*crop_size, np.newaxis])
             pred_img[i*crop_size:(i+1)*crop_size, \
-                     j*crop_size:(j+1)*crop_size, :] = pred[1][0,:,:,0]
+                     j*crop_size:(j+1)*crop_size] = pred[1][0,:,:,0]
     
     G = gridspec.GridSpec(2, time_steps)
     
