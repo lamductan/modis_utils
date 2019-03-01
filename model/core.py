@@ -9,7 +9,7 @@ from tensorflow.python.keras.layers import Convolution1D, MaxPooling1D, Conv2DTr
 from tensorflow.python.keras.layers import Conv1D, Conv2D
 from tensorflow.python.keras.layers import GRU, LSTM
 from tensorflow.python.keras.layers import ConvLSTM2D
-from tensorflow.python.keras.layers import BatchNormalization, TimeDistributed
+from tensorflow.python.keras.layers import BatchNormalization, TimeDistributed, Activation
 from tensorflow.python.keras.callbacks import EarlyStopping, ModelCheckpoint
 from tensorflow.python.keras import losses
 from tensorflow.python.keras import regularizers
@@ -1141,8 +1141,10 @@ def create_model(model_params, compile_params):
                                return_sequences=False)(encoder_convlstm)
     predict_img = Flatten()(predict_img)
     predict_img = Dense(units=4096)(predict_img)
+    predic_img = Activation('tanh')(predic_img)
     predict_img = Dense(units=dim_flaten)(predict_img)
     predict_img = Reshape(target_shape=output_shape)(predict_img)
+    predict_img = Activation('tanh')(predict_img)
 
     model = keras.Model(inputs=[source], outputs=[reconstruct_imgs, predict_img])
     
