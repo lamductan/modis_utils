@@ -1141,7 +1141,7 @@ def create_model(model_params, compile_params):
                                return_sequences=False)(encoder_convlstm)
     predict_img = Flatten()(predict_img)
     predict_img = Dense(units=4096)(predict_img)
-    predic_img = Activation('tanh')(predic_img)
+    predict_img = Activation('tanh')(predic_img)
     predict_img = Dense(units=dim_flaten)(predict_img)
     predict_img = Reshape(target_shape=output_shape)(predict_img)
     predict_img = Activation('tanh')(predict_img)
