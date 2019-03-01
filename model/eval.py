@@ -162,12 +162,12 @@ def predict_and_visualize_by_data_file_and_gridding(data_file_path, target_file_
     
     plt.figure(figsize=(10, 10))
     
-    offset_x = input_seq.shape[2] % crop_size
-    offset_y = input_seq.shape[3] % crop_size
+    offset_x = input_seq.shape[1] % crop_size
+    offset_y = input_seq.shape[2] % crop_size
     input_seq = input_seq[:, offset_x//2:-(offset_x - offset_x//2), \
                           offset_y//2:-(offset_y - offset_y//2), :]
-    ground_truth = ground_truth[:, offset_x//2:-(offset_x - offset_x//2), \
-                                offset_y//2:-(offset_y - offset_y//2), :]
+    ground_truth = ground_truth[offset_x//2:-(offset_x - offset_x//2), \
+                                offset_y//2:-(offset_y - offset_y//2)]
 
     pred_img = np.zeros_like(ground_truth)
 
@@ -176,8 +176,8 @@ def predict_and_visualize_by_data_file_and_gridding(data_file_path, target_file_
             pred = model.predict(input_seq[np.newaxis, :, \
                                  i*crop_size:(i+1)*crop_size, \
                                  j*crop_size:(j+1)*crop_size, np.newaxis])
-            pred_img[:, i*crop_size:(i+1)*crop_size, \
-                     j*crop_size:(j+1)*crop_size, :] = pred[1]
+            pred_img[i*crop_size:(i+1)*crop_size, \
+                     j*crop_size:(j+1)*crop_size, :] = pred[1][0,:,:,0]
     
     G = gridspec.GridSpec(2, time_steps)
     
@@ -186,7 +186,6 @@ def predict_and_visualize_by_data_file_and_gridding(data_file_path, target_file_
         axe.imshow(img)
 
     #pred = scale_data(pred, predict_range, groundtruth_range)
-    pred_img = pred_img[0,:,:,0]
 
     ax_groundtruth = plt.subplot(G[1, :time_steps//2])
     ax_groundtruth.imshow(groundtruth)
@@ -211,7 +210,6 @@ def predict_and_visualize_by_data_file_and_gridding(data_file_path, target_file_
         plt.savefig(os.path.join(result_dir, '{}.png'.format(which))) 
 
     return (groundtruth, pred_img)
-
 
 
 def predict_and_visualize_by_data_file_1(data_file_path, target_file_path, mask_file_path,
