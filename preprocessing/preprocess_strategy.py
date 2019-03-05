@@ -29,8 +29,13 @@ class PreprocessStrategy:
                     print('Not found data {}{:03} in {}.'.format(
                         year, day, current_data_dir))
 
+    def inverse(self, data):
+        pass
+
 
 class NormalizedDivStrategy(PreprocessStrategy):
     def __init__(self):
         self.fn = lambda x: x/10000
-        
+    
+    def inverse(self, data):
+        return data*10000        

@@ -3,10 +3,11 @@ import tensorflow as tf
 import tensorflow.keras as keras
 
 from modis_utils.generators import OneOutputGenerator
-from modis_utils.misc import get_data_test, get_target_test
+from modis_utils.misc import get_data_test, get_target_test, cache_data
 from modis_utils.model.core import compile_model, conv_lstm_2D, conv_2D
 from modis_utils.model.loss_function import mse_with_mask, mse_with_mask_batch
 from modis_utils.model.eval import predict_and_visualize_by_data_file_one_output
+from modis_utils.image_processing import mask_lake_img
 
 
 class ConvLSTMSimpleOneTimeStepsOutput:
@@ -66,6 +67,13 @@ class ConvLSTMSimpleOneTimeStepsOutput:
         predict_and_visualize_by_data_file_one_output(
             data_file_path, target_file_path, pred, idx, modis_utils_obj._result_dir)
 
+    def create_predict_mask_lake(modis_utils_obj, data_type='test'):
+        for idx in range(modis_utils_obj.get_n_tests(data_type)):
+            pred = modis_utils_obj.get_inference(data_type, idx)
+            pred = modis_utils_obj._preprocess_strategy_context.inverse(pred)
+            predict_mask_lake_path = os.path.join(
+                modis_utils_obj._predict_mask_lake, data_type, '{}.dat'.format(idx))
+            cache_data(mask_lake_img(pred), predict_mask_lake_path)
 
 
 class ConvLSTMSimpleSequenceTimeStepsOutput:
@@ -125,3 +133,12 @@ class ConvLSTMSimpleSequenceTimeStepsOutput:
         pred = modis_utils_obj.get_inference(data_type, idx)
         predict_and_visualize_by_data_file_sequence_output(
             data_file_path, target_file_path, pred, idx, modis_utils_obj._result_dir)
+
+    def create_predict_mask_lake(modis_utils_obj, data_type='test'):
+        for idx in range(modis_utils_obj.get_n_tests(data_type)):
+            pred = modis_utils_obj.get_inference(data_type, idx)
+            pred = pred[0]
+            pred = modis_utils_obj._preprocess_strategy_context.inverse(pred)
+            predict_mask_lake_path = os.path.join(
+                modis_utils_obj._predict_mask_lake, data_type, '{}.dat'.format(idx))
+            cache_data(mask_lake_img(pred), predict_mask_lake_path)

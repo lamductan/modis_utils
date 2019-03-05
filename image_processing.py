@@ -42,13 +42,13 @@ def create_groundtruth_mask_lake(data_dir, used_band, year_range, n_data_per_yea
             try:
                 list_imgs = os.listdir(current_data_dir)
                 band_filename = list(filter(lambda x: used_band in x, list_imgs))[0]
-                img = rio.open(band_filename, 'r').read(1)
+                img = rio.open(os.path.join(current_data_dir, band_filename), 'r').read(1)
                 groundtruth_mask_lake = mask_lake_img(img, offset=1000)
                 cur_mask_data_dir = os.path.join(groundtruth_mask_lake_dir, prefix)
                 if not os.path.exists(cur_mask_data_dir):
                     os.makedirs(cur_mask_data_dir)
                 cache_data(
-                    water_cloud_mask, os.path.join(cur_mask_data_dir, 'masked.dat'))
+                    groundtruth_mask_lake, os.path.join(cur_mask_data_dir, 'masked.dat'))
             except:
                 print('Not found band {} in {}{:03} in {}.'.format(
                     used_band, year, day, current_data_dir))

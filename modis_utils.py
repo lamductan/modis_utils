@@ -15,7 +15,7 @@ from modis_utils.image_processing import create_water_cloud_mask, change_fill_va
 from modis_utils.misc import create_data_file_continuous_years, get_data_file_path
 from modis_utils.preprocessing.random_crop import augment_one_reservoir_without_cache
 from modis_utils.preprocessing.random_crop import merge_data_augment
-from modis_utils.misc import get_data_test, get_target_test, cache_data, restore_data, get_data_paths
+from modis_utils.misc import get_data_test, get_target_test, cache_data, restore_data, get_data_paths, get_target_paths
 from modis_utils.model.core import compile_model
 from modis_utils.model.model_utils_factory import get_model_utils
 
@@ -311,15 +311,18 @@ class ModisUtils:
         return output
 
 
-    def inference_all(self, data_type='test', model=None):
-        if self.inference_model is None:
-            if model is None:
-                model = self._model
-            self.inference_model = model
-        assert self.inference_model is not None
-        n = self.get_n_tests(data_type)
-        for idx in n:
-            self.inference(data_type, idx)
+    def inference_all(self, data_types=None, model=None):
+        if data_types is None:
+            data_types = ['train', 'val', 'test']
+        for data_type in data_types:
+            if self.inference_model is None:
+                if model is None:
+                    model = self._model
+                self.inference_model = model
+            assert self.inference_model is not None
+            n = self.get_n_tests(data_type)
+            for idx in n:
+                self.inference(data_type, idx)
 
     def get_inference(self, data_type='test', idx=0, model=None):
         inference_path = self._get_inference_path(data_type, idx)
@@ -339,9 +342,6 @@ class ModisUtils:
 
     def visualize_result(self, data_type='test', idx=0):
         return self.model_utils.visualize_result(self, data_type, idx)
-    
-    def get_predict_water_area(self, data_type='test'):
-        pass
 
     def create_groundtruth_mask_lake(self):
         if not os.path.exists(self._groundtruth_mask_lake_dir):
@@ -355,14 +355,26 @@ class ModisUtils:
         yearday = filename.split('/')[-2]
         year = yearday[:-4]
         groundtruth_mask_lake_path = os.path.join(
-            self._groundtruth_mask_lake_dir, year, yearday)
+            self._groundtruth_mask_lake_dir, year, yearday, 'masked.dat')
         if os.path.exists(groundtruth_mask_lake_path):
             return restore_data(groundtruth_mask_lake_path)
         else:
             return None
 
-    def create_predict_mask_lake(self):
-        pass
+    def create_predict_mask_lake(self, data_type='test'):
+        self.model_utils.create_predict_mask_lake(self, data_type)
 
-    def get_predict_mask_lake(self):
-        pass    
+    def get_predict_mask_lake(self, data_type='test', idx=0):
+        predict_mask_lake_path = os.path.join(
+            self._predict_mask_lake_dir, data_type, '{}.dat'.format(idx))
+        if os.path.exists(predict_mask_lake_path):
+            return restore_data(predict_mask_lake_path)
+        else:
+            return None
+
+    def make_archive_predict(self):
+        make_archive('predict', 'zip', '.', self._predict_dir)
+
+    def make_archive_result(self):
+        make_archive('result', 'zip', '.', self._result_dir)        
+
