@@ -16,7 +16,6 @@ from modis_utils.misc import create_data_file_continuous_years, get_data_file_pa
 from modis_utils.preprocessing.random_crop import augment_one_reservoir_without_cache
 from modis_utils.preprocessing.random_crop import merge_data_augment
 from modis_utils.misc import get_data_test, get_target_test, cache_data, restore_data, get_data_paths
-from modis_utils.generators import get_generator
 from modis_utils.model.core import compile_model
 from modis_utils.model.model_utils_factory import get_model_utils
 
@@ -367,5 +366,3 @@ class ModisUtils:
 
     def get_predict_mask_lake(self):
         pass    
-
-
