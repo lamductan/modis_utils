@@ -49,7 +49,7 @@ def predict_and_visualize_by_data_file_sequence_output(
 
 def predict_and_visualize_by_data_file_one_output_and_gridding(
         data_file_path, target_file_path, model, which=0, 
-        result_dir=None, model=None):
+        result_dir=None):
     input_seq = get_data_test(data_file_path, which)
     if real_time_steps is not None:
         time_steps = real_time_steps
