@@ -1,18 +1,20 @@
+from modis_utils.preprocessing.preprocess_strategy import NormalizedStrategy
 from modis_utils.preprocessing.preprocess_strategy import NormalizedDivStrategy
+
 
 class PreprocessStrategyContext:
 
-    def __init__(self, preprocessed_type):
+    def __init__(self, modis_utils_obj):
         self.strategy = None
-        if preprocessed_type == 'normalized_div':
+        if modis_utils_obj._preprocessed_type == 'normalized_div':
             self.strategy = NormalizedDivStrategy()
+        elif modis_utils_obj._preprocessed_type == 'normalized_zero_one':
+            self.strategy = NormalizedStrategy(modis_utils_obj)
         else:
             raise ValueError
 
-    def preprocess_data(self, data_dir, used_band, year_range,
-                        n_data_per_year, day_period, preprocessed_data_dir):
-        self.strategy.preprocess_data(data_dir, used_band, year_range,
-                                      n_data_per_year, day_period, preprocessed_data_dir)
+    def preprocess_data(self, modis_utils_obj):
+        self.strategy.preprocess_data(modis_utils_obj)
 
     def inverse(self, data):
         return self.strategy.inverse(data)

@@ -4,14 +4,13 @@ from scipy import misc
 from shutil import make_archive
 from matplotlib import pyplot as plt
 
-import tensorflow as tf
 from tensorflow.python.keras import backend as K
 from tensorflow.python.keras.utils import plot_model
 from tensorflow.python.keras.callbacks import ModelCheckpoint
 from tensorflow.python.keras.callbacks import LearningRateScheduler, CSVLogger
 
 from modis_utils.preprocessing.preprocess_strategy_context import PreprocessStrategyContext
-from modis_utils.image_processing import create_water_cloud_mask, change_fill_value, create_groundtruth_mask_lake
+from modis_utils.image_processing import create_water_cloud_mask, create_groundtruth_mask_lake
 from modis_utils.misc import create_data_file_continuous_years, get_data_file_path
 from modis_utils.preprocessing.random_crop import augment_one_reservoir_without_cache
 from modis_utils.preprocessing.random_crop import merge_data_augment
@@ -113,8 +112,8 @@ class ModisUtils:
         self._result_dir = os.path.join('result', self._model_prefix)
         self._predict_dir = os.path.join('predict', self._model_prefix)
         
-        self._num_training_samples = len(self._train_filenames)*self._original_batch_size
-        self._num_validation_samples = len(self._val_filenames)*self._original_batch_size
+        self._num_training_samples = None
+        self._num_validation_samples = None
         
         self._monitor = monitor
         self._monitor_mode = monitor_mode
@@ -130,8 +129,7 @@ class ModisUtils:
         self.inference_model = None
 
         # Strategy objects
-        self._preprocess_strategy_context = PreprocessStrategyContext(
-            self._preprocessed_type)
+        self._preprocess_strategy_context = PreprocessStrategyContext(self)
 
         # Mask lake
         self._groundtruth_mask_lake_dir = os.path.join(
@@ -161,15 +159,8 @@ class ModisUtils:
 
     
     def preprocess_data(self):
-        change_fill_value_data_dir = os.path.join(
-            self._preprocessed_data_dir_prefix, 'change_fill_value')
-        change_fill_value(
-            self._raw_data_dir, self._used_band, self._year_range,
-            self._n_data_per_year, self._day_period, change_fill_value_data_dir)
-        self._preprocess_strategy_context.preprocess_data(
-            change_fill_value_data_dir, '', self._year_range,
-            self._n_data_per_year, self._day_period, self._preprocessed_data_dir)
-        
+        self._preprocess_strategy_context.preprocess_data(self)
+
     
     def make_archive_masked_data(self):
         make_archive('masked_data', 'zip', '.', self._mask_data_dir)
@@ -197,6 +188,8 @@ class ModisUtils:
             
             data_augment_merged_dir = os.path.join(self._data_augment_merged_dir, data_type)
             merge_data_augment(data_augment_dir, data_augment_merged_dir)
+        self._num_training_samples = len(self._train_filenames)*self._original_batch_size
+        self._num_validation_samples = len(self._val_filenames)*self._original_batch_size
         
     def make_archive_augment_data(self):
         make_archive('data_augment_merged', 'zip', '.', self._data_augment_merged_dir)

@@ -379,3 +379,19 @@ def get_reservoir_mean_std(data_dir, reservoir_index):
     std = mean_std_dict_reservoir['std']
     return mean, std
 
+
+def get_max_value(data_dir, used_band, list_years, n_data_per_year, day_period):
+    MAX = 0
+    for year in list_years:
+        for d in range(n_data_per_year):
+            day = d*day_period + 1
+            prefix = os.path.join(str(year), str(year) + str(day).zfill(3))
+            current_data_dir = os.path.join(data_dir, prefix)
+            try:
+                list_imgs = os.listdir(current_data_dir)
+                filename = list(filter(lambda x: used_band in x, list_imgs))[0]
+                img = restore_data(os.path.join(current_data_dir, filename))
+                MAX = max(MAX, np.max(img))
+            except:
+                pass
+    return MAX
