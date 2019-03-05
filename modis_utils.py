@@ -168,10 +168,12 @@ class ModisUtils:
     
     
     def create_data_file(self):
-        return create_data_file_continuous_years(
+        outputs = create_data_file_continuous_years(
             self._preprocessed_data_dir, self._input_timesteps,
             self._output_timesteps, self._list_years_train, self._list_years_val,
             self._list_years_test, self._mask_data_dir)
+        make_archive('data_file', 'zip', '.', 'data_file')
+        return outputs
     
     
     def augment_data(self, n_samples=50):
