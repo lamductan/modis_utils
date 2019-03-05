@@ -120,6 +120,7 @@ class ModisUtils:
         self._checkpoint = None
         self._csv_logger = None
         self._callbacks_list = None
+        
         self.history = None
         if training:
             self._set_checkpoint()
@@ -248,6 +249,12 @@ class ModisUtils:
             
 
     def train(self, epochs=50):
+        if self._TPU_FLAG:
+            self._model = tf.contrib.tpu.keras_to_tpu_model(
+                self._model,
+                strategy=tf.contrib.tpu.TPUDistributionStrategy(
+                    tf.contrib.cluster_resolver.TPUClusterResolver(TPU_WORKER)))
+
         self.history = self._model.fit_generator(
             generator=self._train_batch_generator,
             steps_per_epoch=(self._num_training_samples // self._batch_size),
