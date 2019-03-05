@@ -373,8 +373,8 @@ class ModisUtils:
             return None
 
     def make_archive_predict(self):
-        make_archive('predict', 'zip', '.', self._predict_dir)
+        make_archive('predict_{}'.format(self._model_name), 'zip', '.', self._predict_dir)
 
     def make_archive_result(self):
-        make_archive('result', 'zip', '.', self._result_dir)        
+        make_archive('result_{}'.format(self._model_name), 'zip', '.', self._result_dir)        
 
