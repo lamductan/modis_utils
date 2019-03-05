@@ -62,8 +62,9 @@ class ConvLSTMSimpleOneTimeStepsOutput:
     def visualize_result(modis_utils_obj, data_type, idx):
         data_file_path = modis_utils_obj._data_files[data_type]['data']
         target_file_path = modis_utils_obj._data_files[data_type]['target']
+        pred = modis_utils_obj.get_inference(data_type, idx)
         predict_and_visualize_by_data_file_one_output(
-            data_file_path, target_file_path, idx, modis_utils_obj._result_dir)
+            data_file_path, target_file_path, pred, idx, modis_utils_obj._result_dir)
 
 
 
@@ -121,5 +122,6 @@ class ConvLSTMSimpleSequenceTimeStepsOutput:
     def visualize_result(modis_utils_obj, data_type, idx):
         data_file_path = modis_utils_obj._data_files[data_type]['data']
         target_file_path = modis_utils_obj._data_files[data_type]['target']
+        pred = modis_utils_obj.get_inference(data_type, idx)
         predict_and_visualize_by_data_file_sequence_output(
-            data_file_path, target_file_path, idx, modis_utils_obj._result_dir)
+            data_file_path, target_file_path, pred, idx, modis_utils_obj._result_dir)

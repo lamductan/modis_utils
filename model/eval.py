@@ -8,8 +8,8 @@ from modis_utils.misc import get_data_test, get_target_test
 
 
 def predict_and_visualize_by_data_file_one_output(
-        data_file_path, target_file_path, which=0, 
-        result_dir=None, model=None, pred=None):
+        data_file_path, target_file_path, pred, which=0, 
+        result_dir=None, model=None):
     example = get_data_test(data_file_path, which)
     time_steps = example.shape[0]
     groundtruth = get_target_test(target_file_path, which)
@@ -42,14 +42,14 @@ def predict_and_visualize_by_data_file_one_output(
 
 
 def predict_and_visualize_by_data_file_sequence_output(
-        data_file_path, target_file_path, which=0, 
-        result_dir=None, model=None, pred=None):
+        data_file_path, target_file_path, pred, which=0, 
+        result_dir=None, model=None):
     pass
 
 
 def predict_and_visualize_by_data_file_one_output_and_gridding(
-        data_file_path, target_file_path, which=0, 
-        result_dir=None, model=None, pred=None):
+        data_file_path, target_file_path, pred, which=0, 
+        result_dir=None, model=None):
     input_seq = get_data_test(data_file_path, which)
     if real_time_steps is not None:
         time_steps = real_time_steps
@@ -103,6 +103,6 @@ def predict_and_visualize_by_data_file_one_output_and_gridding(
 
 
 def predict_and_visualize_by_data_file_sequence_output_and_gridding(
-        data_file_path, target_file_path, which=0, 
-        result_dir=None, model=None, pred=None):
+        data_file_path, target_file_path, pred, which=0, 
+        result_dir=None, model=None):
     pass
