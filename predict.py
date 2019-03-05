@@ -1,12 +1,12 @@
 import os
 import numpy as np
 
-from modis_utils.preprocessing.image_processing import mask_cloud_and_water
+from modis_utils.image_processing import mask_cloud_and_water
 from modis_utils.misc import get_predict_dir, get_predict_mask_dir
 from modis_utils.misc import cache_data, restore_data, get_im
 from modis_utils.misc import get_target_test, get_data_file_path, get_target_paths
 from modis_utils.misc import get_reservoir_min_max, get_reservoir_mean_std
-from modis_utils.preprocessing.image_processing import mask_lake_img
+from modis_utils.image_processing import mask_lake_img
 
 
 def get_predict_mask_lake(data_dir, used_band, crop_size, time_steps, filters,

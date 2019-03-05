@@ -54,9 +54,11 @@ def mse_with_mask_tf_1(y_mask, y_pred):
     return tf.reduce_mean((tf_mask - y_pred)**2)
 
 
-def mse_with_mask(groundtruth, mask, predict, mask_cloud=0):
+def mse_with_mask(groundtruth, predict, mask=None, mask_cloud=0):
     square_error = ((groundtruth - predict)**2)
     cloud_mask = np.where(mask == mask_cloud, 0.0, 1.0) #0
     return np.sum(np.multiply(cloud_mask, square_error))/np.maximum(
         np.sum(cloud_mask), 1.0)
 
+def mse_with_mask_batch(groundtruth, predict, mask=None, mask_cloud=0):
+    pass

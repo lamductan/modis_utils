@@ -1,11 +1,5 @@
-from tensorflow.python.keras.utils import Sequence
 from modis_utils.misc import restore_data
-
-def get_generator(model_name, data_filenames, batch_size, original_batch_size):
-    if model_name == 'convlstm_simple':
-        return OneOutputGenerator(data_filenames, batch_size, original_batch_size)
-    elif model_name == 'convlstm_reconstruct':
-        return MultipleOutputGenerator(data_filenames, batch_size, original_batch_size)
+from tensorflow.python.keras.utils import Sequence
 
 
 class MyGenerator(Sequence):

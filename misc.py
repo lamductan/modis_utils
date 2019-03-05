@@ -1,11 +1,9 @@
-import numpy as np
-from scipy import misc
-import cv2
+import os
 import csv
 import pickle
-import os
-import rasterio as rio
-#import tensorflow as tf
+import numpy as np
+from scipy import misc
+import tensorflow as tf
 
 #List of years for MOD13Q1 only
 TRAIN_LIST_YEARS_DEFAULT = [2000, 2001, 2002, 2003, 2004, 
@@ -30,19 +28,6 @@ def to_str(x):
         return '_'.join(b)
 
 
-def get_list_years_default(data_type):
-    if data_type == 'train':
-        return TRAIN_LIST_YEARS_DEFAULT
-    elif data_type == 'val':
-        return VAL_LIST_YEARS_DEFAULT
-    else:
-        return TEST_LIST_YEARS_DEFAULT
-
-
-def get_dir_prefix(used_reservoir, used_band, time_steps):
-    return os.path.join(str(time_steps), str(used_reservoir), used_band)
-
-
 def get_data_file_dir(data_dir, used_band, input_time_steps, output_time_steps):
     return os.path.join('data_file', data_dir, str(input_time_steps), 
                         str(output_time_steps))
@@ -53,42 +38,6 @@ def get_data_file_path(data_dir, used_band, input_time_steps,
     return os.path.join(get_data_file_dir(data_dir, used_band, 
                                           input_time_steps, output_time_steps),
                         '{}_{}.csv'.format(data_type, file_type))
-
-
-def get_cache_dir(data_dir, used_reservoir, used_band, time_steps):
-    return os.path.join('cache', data_dir,
-                        get_dir_prefix(used_reservoir, used_band, time_steps))
-
-
-def get_cache_file_path(data_dir, used_reservoir, used_band,
-                        time_steps, data_type):
-    return os.path.join(get_cache_dir(data_dir, used_reservoir,
-                                      used_band, time_steps),
-                        '{}.dat'.format(data_type))
-
-
-def get_data_augment_dir(data_dir, used_reservoir, used_band,
-                         time_steps, data_type='', crop_size=32):
-    return os.path.join('data_augment', data_dir, str(crop_size),
-                        get_dir_prefix(used_reservoir, used_band, time_steps),
-                        data_type)
-
-
-def get_result_dir_suffix(data_dir, used_reservoir, used_band, crop_size,
-                          time_steps, filters, kernel_size, n_hidden_layers,
-                          mask_cloud_loss):
-    return os.path.join(data_dir, str(crop_size), str(time_steps),
-			used_band, to_str(filters), to_str(kernel_size),
-			str(n_hidden_layers), str(mask_cloud_loss),
-                        str(used_reservoir))
-
-
-def get_result_dir(data_dir, used_reservoir, used_band, crop_size,
-                   time_steps, filters, kernel_size, n_hidden_layers,
-                   mask_cloud_loss):
-    return os.path.join('result', get_result_dir_suffix(
-        data_dir, used_reservoir, used_band, crop_size, time_steps,
-        filters, kernel_size, n_hidden_layers, mask_cloud_loss))
  
 
 def get_predict_dir(data_dir, used_reservoir, used_band, crop_size,
@@ -96,7 +45,7 @@ def get_predict_dir(data_dir, used_reservoir, used_band, crop_size,
                     mask_cloud_loss):
     return os.path.join('predict', get_result_dir_suffix(
         data_dir, used_reservoir, used_band, crop_size, time_steps,
-        filters, kernel_size, n_hidden_layers, mask_cloud_loss))
+        to_str(filters), to_str(kernel_size), to_str(n_hidden_layers), mask_cloud_loss))
  
 
 def get_predict_mask_dir(data_dir, used_reservoir, used_band, crop_size,
@@ -105,76 +54,6 @@ def get_predict_mask_dir(data_dir, used_reservoir, used_band, crop_size,
     return os.path.join('predict_mask', get_result_dir_suffix(
         data_dir, used_reservoir, used_band, crop_size, time_steps,
         filters, kernel_size, n_hidden_layers, mask_cloud_loss))
- 
-
-def get_data_augment_merged_dir(data_dir, used_band, time_steps,
-                                data_type='', crop_size=32):
-    return os.path.join('data_augment_merged', data_dir, str(crop_size),
-                        str(time_steps), used_band, data_type)
-
-def get_threshold_mask_dir(modis_product, reservoir_index):
-    return os.path.join('threshold_mask', modis_product, str(reservoir_index))
-
-def get_threshold_mask_path(modis_product, reservoir_index, year, day):
-    return os.path.join(get_threshold_mask_dir(
-        modis_product, reservoir_index), '{}{:03}.dat'.format(year, day))
-    
-def get_threshold_mask(modis_product, reservoir_index, year, day):
-    path = get_threshold_mask_path(modis_product, reservoir_index, year, day)
-    if os.path.isfile(path):
-        return restore_data(path)
-    else:
-        return None
-
-def get_percentile_path(reservoir_index):
-    return os.path.join('percentile', '{}.dat'.format(reservoir_index))
-
-def get_percentile(reservoir_index):
-    return restore_data(get_percentile_path(reservoir_index))
-
-def get_buffer_path(reservoir_index):
-    return os.path.join('buffer', '{}.dat'.format(reservoir_index))
-
-def get_buffer(reservoir_index):
-    return restore_data(get_buffer_path(reservoir_index))
-
-def get_kmeans_mask_path(data_dir, reservoir_index, year, day):
-    return os.path.join('kmeans_mask', data_dir, str(reservoir_index),
-                        '{}{:03}.dat'.format(year, day))
-
-def get_mask_zone(reservoir_index):
-    return restore_data(os.path.join('mask_zone', '{}.dat'.format(reservoir_index)))
-
-def get_quality_img(modis_product, reservoir_index, year, day):
-    img_dir = os.path.join('raw_data', modis_product, str(reservoir_index),
-                           str(year), '{}{:03}'.format(year, day))
-    list_imgs = os.listdir(img_dir)
-    quality_filename = list(filter(lambda x: 'reliability' in x, list_imgs))[0]
-    quality_filename = os.path.join(img_dir, quality_filename)
-    return restore_data(quality_filename)
-
-def get_mask_dir(modis_product, reservoir_index, year, day, Zhang=False):
-    if Zhang:
-        return os.path.join('Zhang_mask_data', modis_product, str(reservoir_index),
-                        str(year), '{}{:03}'.format(year, day))
-    return os.path.join('mask_data', modis_product, str(reservoir_index),
-                        str(year), '{}{:03}'.format(year, day))
-
-def get_mask_path(modis_product, reservoir_index, year, day, Zhang=False):
-    return os.path.join(get_mask_dir(modis_product, reservoir_index,
-                                     year, day, Zhang),
-                        'masked.dat')
-
-def get_mask(modis_product, reservoir_index, year, day, Zhang=False):
-    try:
-        if Zhang:
-            path = get_Zhang_mask_path(modis_product, reservoir_index, 
-                                       year, day)
-        else:
-            path = get_mask_path(modis_product, reservoir_index, year, day)
-        return restore_data(path)
-    except:
-        return None
 
 
 # Data
@@ -252,47 +131,10 @@ def get_im(path, reduce_size=None):
     return img
 
 
-def _load_data(data_file, reduce_size=None):
-    data_paths = _get_data_path(data_file)
-    X_ = []
-    for data_path_list in data_paths:
-        currentX_ = []
-        for fl in data_path_list:
-            img = restore_data(fl)
-            currentX_.append(img)
-        X_.append(currentX_)
-    return X_
-
-
-def _load_target_mask(target_file, reduce_size=None):
-    target_mask_paths = _get_target_mask_path(target_file)
-    y_ = []
-    for path in target_mask_paths:
-        if path[-4:] != '.dat':
-            img = get_im(path, reduce_size)
-        else:
-            img = restore_data(path)
-        y_.append(img)
-    return y_
-
-
-def check_years_in_file(target_file, list_years):
-    paths = _get_target_mask_path(target_file)
-    list_years_in_file = list(map(int, [path.split('/')[-3] 
-                                        for path in paths]))
-    list_years_in_file = list(set(list_years_in_file))
-    list_years_in_file.sort()
-    list_years.sort()
-    return list_years_in_file == list_years
-
-
 def normalize_data(data, mean=0.0, std=1.0):
     if std == 0:
         return data - mean
     return (data - mean) / std
-
-#def scale_data(data, min=-1000, max=10000, range_min=0, range_max=1):
-#    return np.interp(data, (min, max), (range_min, range_max))
 
 def scale_data(data, original_range=(-1.0,1.0), range=(-0.2001,1.0)):
     return np.interp(data, original_range, range)
@@ -324,32 +166,6 @@ def scale_data_with_scaler(data, scaler):
                          data.shape[2]*data.shape[3])
     scale_x = scaler.transform(x)
     return scale_x.reshape(data.shape)
-
-
-def find_img_name(data_dir='raw_data/MOD13Q1',
-                  reservoir_index=0, year=2001,
-                  day=1, band_find='NDVI'):
-    dir = os.path.join(data_dir, str(reservoir_index), str(year),
-                       str(year) + str(day).zfill(3))
-    try:
-        list_raster = os.listdir(dir)
-        find = list(filter(lambda x: band_find in x, list_raster))
-        return dir + '/' + find[0]
-    except:
-        return None
-
-
-def find_img_name_1(data_dir='raw_data/MOD13Q1',
-                    reservoir_index=0, year=2001,
-                    day=1, band_find='NDVI'):
-    dir = os.path.join(data_dir, str(reservoir_index), str(year),
-                       str(year) + str(day).zfill(3))
-    try:
-        list_raster = os.listdir(dir)
-        find = list(filter(lambda x: band_find in x, list_raster))
-        return find[0]
-    except:
-        return None
 
 
 def _get_list_data_in_one_year(data_dir, used_band, year, mask=False):

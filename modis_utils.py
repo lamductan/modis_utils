@@ -1,4 +1,5 @@
 import os
+import numpy as np
 from scipy import misc
 from shutil import make_archive
 from matplotlib import pyplot as plt
@@ -10,15 +11,14 @@ from tensorflow.python.keras.callbacks import ModelCheckpoint
 from tensorflow.python.keras.callbacks import LearningRateScheduler, CSVLogger
 
 from modis_utils.preprocessing.preprocess_strategy_context import PreprocessStrategyContext
-from modis_utils.image_processing import create_water_cloud_mask, change_fill_value
+from modis_utils.image_processing import create_water_cloud_mask, change_fill_value, create_groundtruth_mask_lake
 from modis_utils.misc import create_data_file_continuous_years, get_data_file_path
 from modis_utils.preprocessing.random_crop import augment_one_reservoir_without_cache
 from modis_utils.preprocessing.random_crop import merge_data_augment
 from modis_utils.misc import get_data_test, get_target_test, cache_data, restore_data, get_data_paths
 from modis_utils.generators import get_generator
-from modis_utils.model.core import create_model_by_name, compile_model
-from modis_utils.model.loss_function import PSNRLoss, lossSSIM, SSIM, step_decay
-from modis_utils.model.loss_function import mse_with_mask_tf, mse_with_mask_tf_1, mse_with_mask
+from modis_utils.model.core import compile_model
+from modis_utils.model.model_utils_factory import get_model_utils
 
 
 class ModisUtils:
@@ -98,6 +98,9 @@ class ModisUtils:
         self._val_filenames = None
         self._train_batch_generator = None
         self._val_batch_generator = None
+
+        self.model_utils = get_model_utils(self._model_name, self._output_timesteps)
+
         if os.path.exists(self._data_augment_merged_dir):
             self._set_generator()
         if model_keras:
@@ -125,9 +128,17 @@ class ModisUtils:
         if training:
             self._set_checkpoint()
 
+        self.inference_model = None
+
         # Strategy objects
         self._preprocess_strategy_context = PreprocessStrategyContext(
             self._preprocessed_type)
+
+        # Mask lake
+        self._groundtruth_mask_lake_dir = os.path.join(
+            'groundtruth_mask_lake', self._dir_prefix)
+        self._predict_mask_lake_dir = os.path.join(
+            'predict_mask_lake', self._model_prefix)
         
         
     def _get_data_files(self):
@@ -196,15 +207,15 @@ class ModisUtils:
         train_dir = os.path.join(self._data_augment_merged_dir, 'train')
         self._train_filenames = [os.path.join(train_dir, data_index)
                                  for data_index in os.listdir(train_dir)]
-        self._train_batch_generator = get_generator(
-            self._model_name, self._train_filenames, self._batch_size,
+        self._train_batch_generator = self.model_utils.get_generator(
+            self._train_filenames, self._batch_size,
             original_batch_size=self._original_batch_size)
         
         val_dir = os.path.join(self._data_augment_merged_dir, 'val')
         self._val_filenames = [os.path.join(val_dir, data_index)
                                for data_index in os.listdir(val_dir)]
-        self._val_batch_generator = get_generator(
-            self._model_name, self._val_filenames, self._batch_size,
+        self._val_batch_generator = self.model_utils.get_generator(
+            self._val_filenames, self._batch_size,
             original_batch_size=self._original_batch_size)
         
     def get_train_generator(self):
@@ -219,9 +230,7 @@ class ModisUtils:
     
     def create_model(self):
         K.clear_session()
-        self._model = create_model_by_name(
-            self._model_name, self._crop_size, self._input_timesteps,
-            self._output_timesteps, self._compile_params)
+        self._model = self.model_utils.create_model(self)
         return self._model
     
     def plot_model(self):
@@ -233,9 +242,22 @@ class ModisUtils:
             plt.imshow(model_plot)
             plt.show()
             
-    def summary(self):
+    def summary_model(self):
         if self._model is not None:
             self._model.summary()
+            
+    def plot_inference_model(self):
+        if self.inference_model is not None:
+            plot_model(self.inference_model, to_file='{}_inference.png'.format(
+                self._model_name), show_shapes=True)
+            model_plot = misc.imread('{}_inference.png'.format(self._model_name))
+            plt.figure(figsize=(15,15))
+            plt.imshow(model_plot)
+            plt.show()
+            
+    def summary_inference_model(self):
+        if self.inference_model is not None:
+            self.inference_model.summary()
             
     def _set_checkpoint(self):
         if not os.path.exists(self._weights_dir):
@@ -258,42 +280,92 @@ class ModisUtils:
             callbacks=self._callbacks_list)
         self._model.save(self.model_path)
     
-    def load_model(self):
+    def get_inference_model(self, img_height, img_width):
+        K.clear_session()
         if os.path.exists(self.model_path):
-            model = self.create_model()
-            model.load(self.model_path)
-            self._model = compile_model(model, self._compile_params)
-            return self._model
+            self.inference_model = self.model_utils._create_model(
+                img_height, img_width, self._input_timesteps, self._compile_params)
+            self.inference_model.load_weights(self.model_path)
+            return self.inference_model
         return None
     
-    def inference(self, model=None, data_type='test', idx=0):
-        if model is None:
-            model = self._model
-        assert model is not None
-        file_path = self._data_files[data_type]['data']
-        data_test = get_data_test(file_path, idx)
-        data_test = np.expand_dims(np.expand_dims(data_test, axis=0), axis=-1)
-        output = model.predict(data_test)
-        cache_data(output, os.path.join(self._predict_dir, '{}.dat'.format(idx)))
-        return output
-    
-    def inference_all(self, model=None, data_type='test'):
-        if model is None:
-            model = self._model
-        assert model is not None
-        file_path = self._data_files[data_type]['data']
-        n = len(get_data_paths(data_file_path))
-        for idx in n:
-            self.inference(model, data_type, idx)
-    
-    def model_eval(self, data_type='test', idx=0):
-        pass
-    
-    def model_eval_all(self, data_type='test'):
-        pass
+    def _get_inference_path(self, data_type='test', idx=0):
+        return os.path.join(
+            self._predict_dir, data_type, '{}.dat'.format(idx))
 
-    def visualize_result(self, data_type='test', idx=0, save_result=True):
-        pass
+    def set_inference_model(self, inference_model):
+        self.inference_model = inference_model
+
+    def get_n_tests(self, data_type):
+        file_path = self._data_files[data_type]['data']
+        return len(get_data_paths(file_path))
+
+    def inference(self, data_type='test', idx=0, model=None):
+        if self.inference_model is None:
+            if model is None:
+                model = self._model
+            self.inference_model = model
+        assert self.inference_model is not None
+        
+        output = self.model_utils.inference(self, data_type, idx)
+        cache_data(output, self._get_inference_path(data_type, idx))
+        return output
+
+
+    def inference_all(self, data_type='test', model=None):
+        if self.inference_model is None:
+            if model is None:
+                model = self._model
+            self.inference_model = model
+        assert self.inference_model is not None
+        n = self.get_n_tests(data_type)
+        for idx in n:
+            self.inference(data_type, idx)
+
+    def get_inference(self, data_type, idx=0, model=None):
+        inference_path = self._get_inference_path(data_type, idx)
+        if not os.path.exists(inference_path):
+            self.inference(data_type, idx)
+        return restore_data(inference_path)
+    
+    def eval(self, data_type='test', idx=0, metric=None):
+        return self.model_utils.eval(self, data_type, idx, metric)
+    
+    def eval_all(self, data_type='test', metric=None):
+        eval_list = []
+        n = self.get_n_tests(data_type)
+        for i in n:
+            eval_list.append(self.eval(data_type, i, metric))
+        return eval_list
+
+    def visualize_result(self, data_type='test', idx=0):
+        return self.model_utils.visualize_result(self, data_type, idx)
     
     def get_predict_water_area(self, data_type='test'):
         pass
+
+    def create_groundtruth_mask_lake(self):
+        if not os.path.exists(self._groundtruth_mask_lake_dir):
+            create_groundtruth_mask_lake(
+                self._raw_data_dir, self._used_band, self._year_range,
+                self._n_data_per_year, self._day_period, self._groundtruth_mask_lake_dir)
+
+    def get_groundtruth_mask_lake(self, data_type='test', idx=0):
+        file_path = self._data_files[data_type]['target']
+        filename = get_target_paths(file_path)[idx][0]
+        yearday = filename.split('/')[-2]
+        year = yearday[:-4]
+        groundtruth_mask_lake_path = os.path.join(
+            self._groundtruth_mask_lake_dir, year, yearday)
+        if os.path.exists(groundtruth_mask_lake_path):
+            return restore_data(groundtruth_mask_lake_path)
+        else:
+            return None
+
+    def create_predict_mask_lake(self):
+        pass
+
+    def get_predict_mask_lake(self):
+        pass    
+
+
