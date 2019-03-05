@@ -321,7 +321,7 @@ class ModisUtils:
                 self.inference_model = model
             assert self.inference_model is not None
             n = self.get_n_tests(data_type)
-            for idx in n:
+            for idx in range(n):
                 self.inference(data_type, idx)
 
     def get_inference(self, data_type='test', idx=0, model=None):
