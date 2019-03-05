@@ -5,7 +5,7 @@ import csv
 import pickle
 import os
 import rasterio as rio
-import tensorflow as tf
+#import tensorflow as tf
 
 #List of years for MOD13Q1 only
 TRAIN_LIST_YEARS_DEFAULT = [2000, 2001, 2002, 2003, 2004, 
@@ -43,15 +43,15 @@ def get_dir_prefix(used_reservoir, used_band, time_steps):
     return os.path.join(str(time_steps), str(used_reservoir), used_band)
 
 
-def get_data_file_dir(data_dir, used_reservoir, used_band, time_steps):
-    return os.path.join('data_file', data_dir,
-                        get_dir_prefix(used_reservoir, used_band, time_steps))
+def get_data_file_dir(data_dir, used_band, input_time_steps, output_time_steps):
+    return os.path.join('data_file', data_dir, str(input_time_steps), 
+                        str(output_time_steps))
 
 
-def get_data_file_path(data_dir, used_reservoir, used_band,
-                       time_steps, data_type, file_type):
-    return os.path.join(get_data_file_dir(data_dir, used_reservoir,
-                                          used_band, time_steps),
+def get_data_file_path(data_dir, used_band, input_time_steps,
+                       output_time_steps, data_type, file_type):
+    return os.path.join(get_data_file_dir(data_dir, used_band, 
+                                          input_time_steps, output_time_steps),
                         '{}_{}.csv'.format(data_type, file_type))
 
 
@@ -177,162 +177,6 @@ def get_mask(modis_product, reservoir_index, year, day, Zhang=False):
         return None
 
 
-def _create_data_file(data_dir,
-                      used_reservoir,
-                      used_band,
-                      time_steps,
-                      list_years,
-                      data_type,
-                      mask_data_dir):
-    input_file = get_data_file_path(data_dir, used_reservoir, used_band,
-                                    time_steps, data_type, 'data') 
-    target_file = get_data_file_path(data_dir, used_reservoir, used_band,
-                                     time_steps, data_type, 'target') 
-
-    input_f = open(input_file, 'w')
-    target_f = open(target_file, 'w')
-    writer_input = csv.writer(input_f)
-    writer_target = csv.writer(target_f)
-    mask_file = get_data_file_path(data_dir, used_reservoir, used_band,
-                                   time_steps, data_type, 'mask')
-    mask_f = open(mask_file, 'w')
-    writer_mask = csv.writer(mask_f)
-
-    time_steps += 1
-    for year in list_years:
-        list_files_in_window = []
-        year_dir = os.path.join(data_dir, str(used_reservoir), str(year))
-        if mask_data_dir is not None:
-             mask_year_dir = os.path.join(mask_data_dir, 
-                                          str(used_reservoir), str(year))
-        list_folders = os.listdir(year_dir)
-        list_folders = sorted(list_folders, key=lambda x: int(x))
-        
-        # Write 1st timesteps
-        day = 0
-        for i in np.arange(time_steps):
-            day = list_folders[i]
-            list_files = os.listdir(os.path.join(year_dir, day))
-            for file in list_files:
-                if used_band in file:
-                    list_files_in_window.append(
-                        os.path.join(day, file))
-        writer_input.writerow([os.path.join(year_dir, file_path)
-            for file_path in list_files_in_window[:-1]])
-        writer_target.writerow([os.path.join(year_dir, file_path)
-            for file_path in list_files_in_window[-1:]])
-        writer_mask.writerow([os.path.join(mask_year_dir, day,
-                              'masked.dat')])
-
-        # write 2nd to last timesteps
-        for i in np.arange(time_steps, len(list_folders)):
-            day = list_folders[i]
-            list_files_in_window = list_files_in_window[1:]
-            list_files = os.listdir(os.path.join(year_dir, day))
-            for file in list_files:
-                if used_band in file:
-                    list_files_in_window.append(
-                        os.path.join(day, file))
-            writer_input.writerow([os.path.join(year_dir, file_path)
-                for file_path in list_files_in_window[:-1]])
-            writer_target.writerow([os.path.join(year_dir, file_path)
-                for file_path in list_files_in_window[-1:]])
-            writer_mask.writerow([os.path.join(mask_year_dir, day,
-                                  'masked.dat')])
-
-    input_f.close()
-    target_f.close()
-    mask_f.close()
-
-
-def create_data_file(data_dir='raw_data/MOD13Q1',
-                     used_reservoir=0,
-                     used_band='NDVI',
-                     time_steps=12,
-                     train_list_years=None,
-                     val_list_years=None,
-                     test_list_years=None,
-                     mask_data_dir='mask_data/MOD13Q1'):
-    """Create files containing path of images.
-    
-    If you already created those files but now you change list_years,
-    you must remove all old files and recreate them.
-    
-    Example:
-        create_data_file(data_dir='raw_data/MOD13Q1',
-                         used_reservoir=0,
-                         used_band='NDVI',
-                         time_steps=12,
-                         train_list_years=None,
-                         val_list_years=None,
-                         test_list_years=None,
-                         mask_data_dir='mask_data/MOD13Q1'):
-
-    Args:
-        data_dir: Directory where stores image data.
-        used_reservoir: Index of processed reservoir.
-        used_band: A string represents name of used band.
-        time_steps: Time steps (length) of LSTM sequence.
-        train_list_years: List years of data used for train, use None if
-            want to use default range.
-        val_list_years: List years of data used for validation.
-        test_list_years: List years of data used for test.
-        mask_data_dir: Directory where stores masked images.
-
-    Returns:
-        A dictionary stores paths of data files.
-    """
-    list_years = {}
-    data_types = ['train', 'val', 'test']
-    file_types = ['data', 'target']
-    if mask_data_dir is not None:
-        file_types.append('mask')
-        
-    if train_list_years is None:
-        list_years['train'] = [2002, 2007, 2009, 2010, 2014, 
-                            2005, 2003, 2015, 2011]
-    else:
-        list_years['train'] = train_list_years
-    
-    if val_list_years is None:
-        list_years['val'] = [2001, 2006, 2016, 2013]
-    else:
-        list_years['val'] = val_list_years
-
-    if test_list_years is None:
-        list_years['test'] = [2008, 2017, 2012, 2004]
-    else:
-        list_years['test'] = test_list_years
-
-    data_file_dir = get_data_file_dir(data_dir, used_reservoir,
-                                      used_band, time_steps)
-    
-    outputs = {}
-    for data_type in data_types:
-        outputs[data_type] = {}
-        for file_type in file_types:
-            outputs[data_type][file_type] = get_data_file_path(
-                data_dir, used_reservoir, used_band,
-                time_steps, data_type, file_type)
-    
-    # Check whether all needed files are created
-    if os.path.isdir(data_file_dir):
-        if mask_data_dir is None:
-            return outputs
-        elif os.path.isfile(outputs['train']['mask']):
-            return outputs
-    
-    # Not all files are created, Create/Recreate them.
-    try:
-        os.makedirs(data_file_dir)
-    except:
-        pass
-    for data_type in data_types:
-        _create_data_file(data_dir, used_reservoir, used_band, time_steps,
-                          list_years[data_type], data_type, mask_data_dir)
-    return outputs
-
-
 # Data
 def cache_data(data, path):
     """Save data (numpy array) to disk."""
@@ -387,7 +231,7 @@ def get_data_paths(data_file):
 def _get_target_mask_path(target_file):
     with open(target_file, "r") as target_f:
         reader = csv.reader(target_f)
-        target_paths = [row[0] for row in reader]
+        target_paths = [row for row in reader]
     return target_paths
 
 
@@ -440,97 +284,6 @@ def check_years_in_file(target_file, list_years):
     list_years_in_file.sort()
     list_years.sort()
     return list_years_in_file == list_years
-
-
-def get_data(data_dir='raw_data/MOD13Q1',
-             used_reservoir=0,
-             used_band='NDVI',
-             time_steps=12,
-             data_type='test',
-             list_years=None,
-             reduce_size=None,
-             mask_data_dir='mask_data/MOD13Q1',
-             force_recreated=False):
-    """Get data, target and mask of a data type of a reservoir.
-    
-    Example:
-        get_data(data_dir='raw_data/MOD13Q1',
-                 used_reservoir=0,
-                 used_band='NDVI',
-                 time_steps=12,
-                 data_type='test',
-                 reduce_size=None,
-                 mask_data_dir='mask_data/MOD13Q1',
-                 force_recreated=False)
-       
-    Args:
-        data_dir: String, directory where stores image data.
-        used_reservoir: Integer, index of processed reservoir.
-        used_band: String, a string represents name of used band.
-        time_steps: Integer, time steps (length) of LSTM sequence.
-        data_type: String, type of data (train/val/test).
-        reduce_size: Tuple, desired size of loaded image (default is None).
-        mask_data_dir: String, directory where stores masked image.
-        force_recreated: Boolean, force recreated cache.
-
-    Returns:
-    Tuple of data, target and mask.
-    """
-    if list_years is None:
-        list_years = get_list_years_default(data_type)
-
-    dir_prefix = get_dir_prefix(used_reservoir, used_band, time_steps) 
-    data_file_dir = get_data_file_dir(data_dir, used_reservoir, used_band,
-                                      time_steps)
-    cache_dir = get_cache_dir(data_dir, used_reservoir, used_band, time_steps)
-    cache_path = os.path.join(cache_dir, '{}.dat'.format(data_type))
-
-    target_file = get_data_file_path(data_dir, used_reservoir, used_band,
-                                     time_steps, data_type, 'target')
-    if not force_recreated:
-        if not os.path.isfile(target_file) \
-                or not check_years_in_file(target_file, list_years):
-            force_recreated = True
-
-    if force_recreated or not os.path.isfile(cache_path):
-        print('Read {} images.'.format(data_type))
-
-        data_file = get_data_file_path(data_dir, used_reservoir, used_band,
-                                       time_steps, data_type, 'data')
-        target_file = get_data_file_path(data_dir, used_reservoir, used_band,
-                                         time_steps, data_type, 'target')
-        mask_file = get_data_file_path(data_dir, used_reservoir, used_band,
-                                       time_steps, data_type, 'mask')
-        
-        if force_recreated \
-                or not os.path.isfile(data_file) \
-                or not os.path.isfile(target_file) \
-                or not os.path.isfile(mask_file):
-            _create_data_file(data_dir, used_reservoir, used_band, time_steps,
-                              list_years, data_type, mask_data_dir)
-
-        data = _load_data(data_file, reduce_size=reduce_size)
-        target = _load_target_mask(target_file, reduce_size=reduce_size)
-        mask = _load_target_mask(mask_file, reduce_size=reduce_size)
-        
-        data = np.array(data, dtype=np.float32)
-        data = np.expand_dims(data, axis=-1)
-        target = np.array(target, dtype=np.float32)
-        target = np.expand_dims(target, axis=-1)
-        mask = np.expand_dims(mask, axis=-1)
-        
-        try:
-            os.makedirs(cache_dir)
-        except:
-            pass
-
-        cache = (data, target, mask)
-        cache_data(cache, cache_path)
-        return cache
-    else:
-        print('Restore {} from cache!'.format(data_type))
-        cache = restore_data(cache_path)
-        return cache
 
 
 def normalize_data(data, mean=0.0, std=1.0):
@@ -599,167 +352,107 @@ def find_img_name_1(data_dir='raw_data/MOD13Q1',
         return None
 
 
+def _get_list_data_in_one_year(data_dir, used_band, year, mask=False):
+    if mask:
+        filename = 'masked.dat'
+    else:
+        filename = 'preprocessed.dat'
+    year_dir = os.path.join(data_dir, str(year))
+    list_folders = os.listdir(year_dir)
+    list_folders = sorted(list_folders, key=lambda x: int(x))
+    return [os.path.join(year_dir, x, filename) for x in list_folders]
+
+
 def _create_data_file_continuous_years(data_dir,
-                                       used_reservoir,
-                                       used_band,
-                                       time_steps,
+                                       input_time_steps,
+                                       output_time_steps,
                                        list_years,
                                        data_type,
-                                       mask_data_dir):
-    input_file = get_data_file_path(data_dir, used_reservoir, used_band,
-                                    time_steps, data_type, 'data') 
-    target_file = get_data_file_path(data_dir, used_reservoir, used_band,
-                                     time_steps, data_type, 'target') 
-
+                                       mask_data_dir,
+                                       used_band=''):
+    input_file = get_data_file_path(data_dir, used_band, input_time_steps,
+                                    output_time_steps, data_type, 'data') 
+    target_file = get_data_file_path(data_dir, used_band, input_time_steps,
+                                     output_time_steps, data_type, 'target') 
+    mask_file = get_data_file_path(data_dir, used_band, input_time_steps,
+                                   output_time_steps, data_type, 'mask')
     input_f = open(input_file, 'w')
     target_f = open(target_file, 'w')
+    mask_f = open(mask_file, 'w')
     writer_input = csv.writer(input_f)
     writer_target = csv.writer(target_f)
-    mask_file = get_data_file_path(data_dir, used_reservoir, used_band,
-                                   time_steps, data_type, 'mask')
-    mask_f = open(mask_file, 'w')
     writer_mask = csv.writer(mask_f)
 
-    reservoir_dir = os.path.join(data_dir, str(used_reservoir))
-    if list_years[0] == 2000:
-        list_years = list_years[1:]
-        
-        list_files_in_window = []
-        year = 2000
-        if mask_data_dir is not None:
-             mask_year_dir = os.path.join(mask_data_dir, 
-                                          str(used_reservoir), str(year))
-        year_dir = os.path.join(reservoir_dir, str(year))
-        list_folders = os.listdir(year_dir)
-        list_folders = sorted(list_folders, key=lambda x: int(x))
-        n_data_per_year = len(list_folders)
+    list_data = []
+    list_mask = []
 
-        if n_data_per_year >= time_steps + 1:
-            # Write 1st timesteps
-            for i in np.arange(time_steps):
-                day = list_folders[i]
-                list_files = os.listdir(os.path.join(year_dir, day))
-                for file in list_files:
-                    if used_band in file:
-                        list_files_in_window.append(
-                            os.path.join(str(year), day, file))
-            day = list_folders[time_steps]
-            list_files = os.listdir(os.path.join(year_dir, day))
-            for file in list_files:
-                if used_band in file:
-                    list_files_in_window.append(
-                        os.path.join(str(year), day, file))
-            writer_input.writerow([os.path.join(reservoir_dir, file_path)
-                for file_path in list_files_in_window[:-1]])
-            writer_target.writerow([os.path.join(reservoir_dir, file_path)
-                for file_path in list_files_in_window[-1:]])
-            writer_mask.writerow([os.path.join(mask_year_dir, day,
-                                  'masked.dat')])
+    if list_years[0] > 2000:
+        list_data_prev_year = _get_list_data_in_one_year(
+            data_dir, used_band, list_years[0] - 1)
+        list_data += list_data_prev_year[-input_time_steps:]
+        list_mask_prev_year = _get_list_data_in_one_year(
+            mask_data_dir, used_band, list_years[0] - 1, True)
+        list_mask += list_mask_prev_year[-input_time_steps:]
 
-            # write 2nd to last timesteps
-            for i in np.arange(time_steps + 1, len(list_folders)):
-                day = list_folders[i]
-                list_files_in_window = list_files_in_window[1:]
-                list_files = os.listdir(os.path.join(year_dir, day))
-                for file in list_files:
-                    if used_band in file:
-                        list_files_in_window.append(
-                            os.path.join(str(year), day, file))
-                writer_input.writerow([os.path.join(reservoir_dir, file_path)
-                    for file_path in list_files_in_window[:-1]])
-                writer_target.writerow([os.path.join(reservoir_dir, file_path)
-                    for file_path in list_files_in_window[-1:]])
-                writer_mask.writerow([os.path.join(mask_year_dir, day,
-                                      'masked.dat')])
     for year in list_years:
-        list_files_in_window = []
-        if mask_data_dir is not None:
-             mask_year_dir = os.path.join(mask_data_dir, 
-                                          str(used_reservoir), str(year))
-        year_dir = os.path.join(reservoir_dir, str(year))
-        prev_year_dir = os.path.join(reservoir_dir, str(year - 1))
-        list_folders = os.listdir(year_dir)
-        list_folders = sorted(list_folders, key=lambda x: int(x))
-        list_folders_prev_year = os.listdir(prev_year_dir)
-        list_folders_prev_year = sorted(list_folders_prev_year, key=lambda x: int(x))
-    
-        n_data_per_year = len(list_folders)
+        list_data += _get_list_data_in_one_year(data_dir, used_band, year)
+        list_mask += _get_list_data_in_one_year(mask_data_dir, used_band, year, True)
 
-        # Write data in previous year
-        # Write 1st timesteps
-        for i in np.arange(-time_steps, 0):
-            day = list_folders_prev_year[i]
-            list_files = os.listdir(os.path.join(prev_year_dir, day))
-            for file in list_files:
-                if used_band in file:
-                    list_files_in_window.append(
-                        os.path.join(str(year - 1), day, file))
-        day = list_folders[0]
-        list_files = os.listdir(os.path.join(year_dir, day))
-        for file in list_files:
-            if used_band in file:
-                list_files_in_window.append(
-                    os.path.join(str(year), day, file))
-        writer_input.writerow([os.path.join(reservoir_dir, file_path)
-            for file_path in list_files_in_window[:-1]])
-        writer_target.writerow([os.path.join(reservoir_dir, file_path)
-            for file_path in list_files_in_window[-1:]])
-        writer_mask.writerow([os.path.join(mask_year_dir, day,
-                              'masked.dat')])
+    if list_years[-1] < 2018 and output_time_steps > 1:
+        list_data_next_year = _get_list_data_in_one_year(
+            data_dir, used_band, list_years[-1] + 1)
+        list_data += list_data_next_year[:output_time_steps - 1]
+        list_mask_next_year = _get_list_data_in_one_year(
+            mask_data_dir, used_band, list_years[-1] + 1, True)
+        list_mask += list_mask_next_year[:output_time_steps - 1]
 
-        # write 2nd to last timesteps
-        for i in np.arange(1, len(list_folders)):
-            day = list_folders[i]
-            list_files_in_window = list_files_in_window[1:]
-            list_files = os.listdir(os.path.join(year_dir, day))
-            for file in list_files:
-                if used_band in file:
-                    list_files_in_window.append(
-                        os.path.join(str(year), day, file))
-            writer_input.writerow([os.path.join(reservoir_dir, file_path)
-                for file_path in list_files_in_window[:-1]])
-            writer_target.writerow([os.path.join(reservoir_dir, file_path)
-                for file_path in list_files_in_window[-1:]])
-            writer_mask.writerow([os.path.join(mask_year_dir, day,
-                                  'masked.dat')])
+    n_data = len(list_data) - (input_time_steps + output_time_steps) + 1
+    for i in range(input_time_steps, n_data + input_time_steps):
+        list_data_in_window = list_data[i - input_time_steps : i]
+        list_target_in_window = list_data[i : i + output_time_steps]
+        list_mask_in_window = list_mask[i : i + output_time_steps]
+        writer_input.writerow(list_data_in_window)
+        writer_target.writerow(list_target_in_window)
+        writer_mask.writerow(list_mask_in_window)
 
     input_f.close()
     target_f.close()
+    mask_f.close()
 
 
 def create_data_file_continuous_years(data_dir='raw_data/MOD13Q1',
-                                     used_reservoir=0,
-                                     used_band='NDVI',
-                                     time_steps=12,
-                                     train_list_years=None,
-                                     val_list_years=None,
-                                     test_list_years=None,
-                                     mask_data_dir='mask_data/MOD13Q1'):
+                                      input_time_steps=12,
+                                      output_time_steps=1,
+                                      list_years_train=None,
+                                      list_years_val=None,
+                                      list_years_test=None,
+                                      mask_data_dir='masked_data/MOD13Q1',
+                                      used_band=''):
     """Create files containing path of images.
     
     If you already created those files but now you change list_years,
     you must remove all old files and recreate them.
     
     Example:
-        create_data_file_continuous_years(data_dir='raw_data/MOD13Q1',
-                                          used_reservoir=0,
+        create_data_file_continuous_years(data_dir='raw_data/MOD13Q1/0',
                                           used_band='NDVI',
-                                          time_steps=12,
-                                          train_list_years=None,
-                                          val_list_years=None,
-                                          test_list_years=None,
-                                          mask_data_dir='mask_data/MOD13Q1'):
+                                          input_time_steps=12,
+                                          output_time_steps=1,
+                                          list_years_train=None,
+                                          list_years_val=None,
+                                          list_years_test=None,
+                                          mask_data_dir='masked_data/MOD13Q1'):
 
     Args:
         data_dir: Directory where stores image data.
-        used_reservoir: Index of processed reservoir.
-        used_band: A string represents name of used band.
-        time_steps: Time steps (length) of LSTM sequence.
-        train_list_years: List years of data used for train, use None if
+        input_time_steps: Input Time steps (length) of LSTM sequence.
+        output_time_steps: Output Time steps (length) of LSTM sequence.
+        list_years_train: List years of data used for train, use None if
             want to use default range.
-        val_list_years: List years of data used for validation.
-        test_list_years: List years of data used for test.
+        list_years_val: List years of data used for validation.
+        list_years_test: List years of data used for test.
         mask_data_dir: Directory where stores masked images.
+        used_band: A string represents name of used band.
 
     Returns:
         A dictionary stores paths of data files.
@@ -770,31 +463,31 @@ def create_data_file_continuous_years(data_dir='raw_data/MOD13Q1',
     if mask_data_dir is not None:
         file_types.append('mask')
         
-    if train_list_years is None:
+    if list_years_train is None:
         list_years['train'] = TRAIN_LIST_YEARS_DEFAULT
     else:
-        list_years['train'] = train_list_years
+        list_years['train'] = list_years_train
     
-    if val_list_years is None:
+    if list_years_val is None:
         list_years['val'] = VAL_LIST_YEARS_DEFAULT
     else:
-        list_years['val'] = val_list_years
+        list_years['val'] = list_years_val
 
-    if test_list_years is None:
+    if list_years_test is None:
         list_years['test'] = TEST_LIST_YEARS_DEFAULT
     else:
-        list_years['test'] = test_list_years
+        list_years['test'] = list_years_test
 
-    data_file_dir = get_data_file_dir(data_dir, used_reservoir,
-                                      used_band, time_steps)
+    data_file_dir = get_data_file_dir(data_dir, used_band,
+                                      input_time_steps, output_time_steps)
     
     outputs = {}
     for data_type in data_types:
         outputs[data_type] = {}
         for file_type in file_types:
             outputs[data_type][file_type] = get_data_file_path(
-                data_dir, used_reservoir, used_band,
-                time_steps, data_type, file_type)
+                data_dir, used_band, input_time_steps,
+                output_time_steps, data_type, file_type)
     
     # Check whether all needed files are created
     if os.path.isdir(data_file_dir):
@@ -809,123 +502,35 @@ def create_data_file_continuous_years(data_dir='raw_data/MOD13Q1',
     except:
         pass
     for data_type in data_types:
-        _create_data_file_continuous_years(data_dir, used_reservoir, used_band,
-                                           time_steps, list_years[data_type],
-                                           data_type, mask_data_dir)
+        _create_data_file_continuous_years(data_dir, input_time_steps,
+                                           output_time_steps, list_years[data_type],
+                                           data_type, mask_data_dir, '')
     return outputs
 
 
-def get_data_continuous_years(data_dir='raw_data/MOD13Q1',
-                              used_reservoir=0,
-                              used_band='NDVI',
-                              time_steps=12,
-                              data_type='test',
-                              list_years=None,
-                              reduce_size=None,
-                              mask_data_dir='mask_data/MOD13Q1',
-                              force_recreated=False,
-                              cache_data='True'):
-    """Get data, target and mask of a data type of a reservoir.
-    
-    Example:
-        get_data_continuous_years(data_dir='raw_data/MOD13Q1',
-                                  used_reservoir=0,
-                                  used_band='NDVI',
-                                  time_steps=12,
-                                  data_type='test',
-                                  reduce_size=None,
-                                  mask_data_dir='mask_data/MOD13Q1',
-                                  force_recreated=False)
-                       
-    Args:
-        data_dir: String, directory where stores image data.
-        used_reservoir: Integer, index of processed reservoir.
-        used_band: String, a string represents name of used band.
-        time_steps: Integer, time steps (length) of LSTM sequence.
-        data_type: String, type of data (train/val/test).
-        reduce_size: Tuple, desired size of loaded image (default is None).
-        mask_data_dir: String, directory where stores masked image.
-        force_recreated: Boolean, force recreated cache.
-
-    Returns:
-    Tuple of data, target and mask.
-    """
-    if list_years is None:
-        list_years = get_list_years_default(data_type)
-
-    dir_prefix = get_dir_prefix(used_reservoir, used_band, time_steps) 
-    data_file_dir = get_data_file_dir(data_dir, used_reservoir, used_band,
-                                      time_steps)
-    cache_dir = get_cache_dir(data_dir, used_reservoir, used_band, time_steps)
-    cache_path = os.path.join(cache_dir, '{}.dat'.format(data_type))
-
-    target_file = get_data_file_path(data_dir, used_reservoir, used_band,
-                                     time_steps, data_type, 'target')
-    if not force_recreated:
-        if not os.path.isfile(target_file) \
-                or not check_years_in_file(target_file, list_years):
-            force_recreated = True
-
-    if force_recreated or not os.path.isfile(cache_path):
-        print('Read {} images.'.format(data_type))
-
-        data_file = get_data_file_path(data_dir, used_reservoir, used_band,
-                                       time_steps, data_type, 'data')
-        target_file = get_data_file_path(data_dir, used_reservoir, used_band,
-                                         time_steps, data_type, 'target')
-        mask_file = get_data_file_path(data_dir, used_reservoir, used_band,
-                                       time_steps, data_type, 'mask')
-        
-        if force_recreated \
-                or not os.path.isfile(data_file) \
-                or not os.path.isfile(target_file) \
-                or not os.path.isfile(mask_file):
-            _create_data_file_continuous_years(data_dir, used_reservoir, used_band,
-                                               time_steps, list_years, data_type,
-                                               mask_data_dir)
-
-        if cache_data:
-            data = _load_data(data_file, reduce_size=reduce_size)
-            target = _load_target_mask(target_file, reduce_size=reduce_size)
-            mask = _load_target_mask(mask_file, reduce_size=reduce_size)
-            
-            data = np.array(data, dtype=np.float32)
-            data = np.expand_dims(data, axis=-1)
-            target = np.array(target, dtype=np.float32)
-            target = np.expand_dims(target, axis=-1)
-            mask = np.expand_dims(mask, axis=-1)
-            
-            try:
-                os.makedirs(cache_dir)
-            except:
-                pass
-
-            cache = (data, target, mask)
-            cache_data(cache, cache_path)
-            return cache
-    else:
-        if cache_data:
-            print('Restore {} from cache!'.format(data_type))
-            cache = restore_data(cache_path)
-            return cache
-
-
-def get_data_merged_from_paths(data_paths, target_path, mask_path):
+def get_data_merged_from_paths(data_paths, target_paths, mask_paths):
     list_data = []
     for data_path in data_paths:
         list_data.append(np.expand_dims(restore_data(data_path), axis=0))
-    list_data.append(np.expand_dims(restore_data(target_path), axis=0))
-    list_data.append(np.expand_dims(restore_data(mask_path), axis=0))
+    for target_path in target_paths:
+        list_data.append(np.expand_dims(restore_data(target_path), axis=0))
+    for mask_path in mask_paths:
+        list_data.append(np.expand_dims(restore_data(mask_path), axis=0))
     data_merged = np.concatenate(list_data, axis=0)
     data_merged = np.expand_dims(data_merged, axis=0)
-    del list_data
     return data_merged
 
 
 def get_target_test(target_file_path, which):
-    target_paths = _get_target_mask_path(target_file_path)
-    target_path = target_paths[which]
-    return restore_data(target_path)
+    target_paths_list = _get_target_mask_path(target_file_path)
+    target_paths = target_paths_list[which]
+    if len(target_paths) == 1:
+        return restore_data(target_paths[0])
+    else:
+        list_target = []
+        for path in target_paths:
+            list_target.append(np.expand_dims(restore_data(path), axis=0))
+        return np.concatenate(list_target, axis=0)
 
 
 def get_data_test(data_file_path, which):

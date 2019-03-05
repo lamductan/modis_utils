@@ -1098,6 +1098,28 @@ def create_decoder():
     #net.add(conv_2D_transpose(filters=16, kernel_size=3, strides=2))
     return net
 
+def compile_model(model, compile_params):
+    optimizer = keras.optimizers.SGD(lr=1e-4)
+    loss = 'mse'
+    metrics = ['mse']
+    loss_weights = None
+
+    if 'optimizer' in compile_params.keys():
+        optimizer = compile_params['optimizer']
+    if 'loss' in compile_params.keys():
+        loss = compile_params['loss']
+    if 'metrics' in compile_params.keys():
+        metrics= compile_params['metrics']
+    if 'loss_weights' in compile_params.keys():
+        loss_weights = compile_params["loss_weights"]
+
+    model.compile(
+        optimizer=optimizer,
+        loss=loss,
+        loss_weights=loss_weights,
+        metrics=metrics)
+    return model
+
 def create_model(model_params, compile_params):
     # Prepair
     input_shape = model_params['input_shape']
@@ -1149,23 +1171,62 @@ def create_model(model_params, compile_params):
     model = keras.Model(inputs=[source], outputs=[reconstruct_imgs, predict_img])
     
     # Compile parameters
-    optimizer = keras.optimizers.SGD(lr=1e-4)
-    loss = 'mse'
-    metrics = ['mse']
-    loss_weights = None
-
-    if 'optimizer' in compile_params.keys():
-        optimizer = compile_params['optimizer']
-    if 'loss' in compile_params.keys():
-        loss = compile_params['loss']
-    if 'metrics' in compile_params.keys():
-        metrics= compile_params['metrics']
-    if 'loss_weights' in compile_params.keys():
-        loss_weights = compile_params["loss_weights"]
-
-    model.compile(
-        optimizer=optimizer,
-        loss=loss,
-        loss_weights=loss_weights,
-        metrics=metrics)
+    model = compile_model(model, compile_params)
     return model
+
+
+def create_model_convLSTM_simple_one_output(img_height, img_width, input_timesteps, compile_params):
+    # Prepair
+    input_shape = (input_timesteps, img_height, img_width, 1)
+    
+    # Model architecture
+    source = keras.Input(
+        name='seed', shape=input_shape, dtype=tf.float32)
+    model = conv_lstm_2D(filters=128, kernel_size=3, strides=1, padding='same')(source)
+    model = conv_lstm_2D(filters=128, kernel_size=3, strides=1, padding='same')(model)
+    model = conv_lstm_2D(filters=128, kernel_size=3, strides=1, padding='same')(model)
+    model = conv_lstm_2D(filters=128, kernel_size=3, strides=1, padding='same')(model)
+    model = conv_lstm_2D(filters=128, kernel_size=3, strides=1, padding='same', return_sequences=False)(model)
+    predict_img = conv_2D(filters=1, kernel_size=3, strides=1, padding='same')(model)
+    model = keras.Model(inputs=[source], outputs=[predict_img])
+    
+    # Compile model
+    model = compile_model(model, compile_params)
+    return model 
+
+
+def create_model_convLSTM_simple_sequence_output(img_height, img_width, input_timesteps, compile_params):
+    # Prepair
+    input_shape = (input_timesteps, img_height, img_width, 1)
+    
+    # Model architecture
+    source = keras.Input(
+        name='seed', shape=input_shape, dtype=tf.float32)
+    model = conv_lstm_2D(filters=128, kernel_size=3, strides=1, padding='same')(source)
+    model = conv_lstm_2D(filters=128, kernel_size=3, strides=1, padding='same')(model)
+    model = conv_lstm_2D(filters=128, kernel_size=3, strides=1, padding='same')(model)
+    model = conv_lstm_2D(filters=128, kernel_size=3, strides=1, padding='same')(model)
+    model = conv_lstm_2D(filters=128, kernel_size=3, strides=1, padding='same')(model)
+    predict_imgs = TimeDistributed(conv_2D(filters=1, kernel_size=3, strides=1, padding='same'))(model)
+    model = keras.Model(inputs=[source], outputs=[predict_imgs])
+    
+    # Compile model
+    model = compile_model(model, compile_params)
+    return model   
+
+
+def create_model_convLSTM_simple(crop_size, input_timesteps, 
+                                 output_timesteps, compile_params):
+    if output_timesteps == 1:
+        return create_model_convLSTM_simple_one_output(
+            crop_size, crop_size, input_timesteps, compile_params)
+    else:
+        return create_model_convLSTM_simple_sequence_output(
+            crop_size, crop_size, input_timesteps, compile_params)
+
+
+def create_model_by_name(model_name, crop_size, input_timesteps, 
+                         output_timesteps, compile_params):
+    if model_name == 'convlstm_simple':
+        return create_model_convLSTM_simple(crop_size, input_timesteps,
+                                            output_timesteps, compile_params)
