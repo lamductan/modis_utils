@@ -256,6 +256,7 @@ class ModisUtils:
             validation_data=self._val_batch_generator,
             validation_steps=(self._num_validation_samples // self._batch_size),
             callbacks=self._callbacks_list)
+        self._model.save(self.model_path)
     
     def load_model(self):
         if os.path.exists(self.model_path):
@@ -271,6 +272,7 @@ class ModisUtils:
         assert model is not None
         file_path = self._data_files[data_type]['data']
         data_test = get_data_test(file_path, idx)
+        data_test = np.expand_dims(np.expand_dims(data_test, axis=0), axis=-1)
         output = model.predict(data_test)
         cache_data(output, os.path.join(self._predict_dir, '{}.dat'.format(idx)))
         return output
