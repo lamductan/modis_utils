@@ -61,4 +61,7 @@ def mse_with_mask(groundtruth, predict, mask=None, mask_cloud=0):
         np.sum(cloud_mask), 1.0)
 
 def mse_with_mask_batch(groundtruth, predict, mask=None, mask_cloud=0):
-    pass
+    loss = []
+    for i in range(predict.shape[0]):
+        loss.append(mse_with_mask(groundtruth[i], predict[i], mask, mask_cloud))
+    return [loss[0], np.mean(np.asarray(loss, dtype=np.float32))]
