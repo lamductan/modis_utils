@@ -98,7 +98,7 @@ class ModisUtils:
         self._val_batch_generator = None
         self._num_training_samples = None
         self._num_validation_samples = None
-        
+
         self.model_utils = get_model_utils(self._model_name, self._output_timesteps)
 
         if os.path.exists(self._data_augment_merged_dir):
@@ -267,6 +267,12 @@ class ModisUtils:
             
 
     def train(self, epochs=50):
+        if self._TPU_FLAG:
+            self._model = tf.contrib.tpu.keras_to_tpu_model(
+                self._model,
+                strategy=tf.contrib.tpu.TPUDistributionStrategy(
+                    tf.contrib.cluster_resolver.TPUClusterResolver(TPU_WORKER)))
+
         self.history = self._model.fit_generator(
             generator=self._train_batch_generator,
             steps_per_epoch=(self._num_training_samples // self._batch_size),
