@@ -267,8 +267,8 @@ class ModisUtils:
         self._callbacks_list = [self._checkpoint, self._csv_logger]
             
 
-    def train(self, epochs=50):
-        if self._TPU_FLAG:
+    def train(self, epochs=50, TPU_WORKER=None):
+        if self._TPU_FLAG and TPU_WORKER is not None:
             self._model = tf.contrib.tpu.keras_to_tpu_model(
                 self._model,
                 strategy=tf.contrib.tpu.TPUDistributionStrategy(
