@@ -321,7 +321,7 @@ class ModisUtils:
         for idx in n:
             self.inference(data_type, idx)
 
-    def get_inference(self, data_type, idx=0, model=None):
+    def get_inference(self, data_type='test', idx=0, model=None):
         inference_path = self._get_inference_path(data_type, idx)
         if not os.path.exists(inference_path):
             self.inference(data_type, idx)

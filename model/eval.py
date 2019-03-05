@@ -8,7 +8,7 @@ from modis_utils.misc import get_data_test, get_target_test
 
 
 def predict_and_visualize_by_data_file_one_output(
-        data_file_path, target_file_path, pred, which=0, 
+        data_file_path, target_file_path, pred_img, which=0, 
         result_dir=None, model=None):
     example = get_data_test(data_file_path, which)
     time_steps = example.shape[0]
@@ -19,7 +19,7 @@ def predict_and_visualize_by_data_file_one_output(
         pred = model.predict(example[np.newaxis, :, :, :, np.newaxis])
     
     G = gridspec.GridSpec(2, time_steps)
-    pred_img = pred[0,:,:,0]
+    pred_img
     
     for i, img in enumerate(example):
         axe = plt.subplot(G[0, i])
@@ -48,7 +48,7 @@ def predict_and_visualize_by_data_file_sequence_output(
 
 
 def predict_and_visualize_by_data_file_one_output_and_gridding(
-        data_file_path, target_file_path, pred, which=0, 
+        data_file_path, target_file_path, model, which=0, 
         result_dir=None, model=None):
     input_seq = get_data_test(data_file_path, which)
     if real_time_steps is not None:
