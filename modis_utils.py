@@ -212,6 +212,8 @@ class ModisUtils:
         self._val_batch_generator = self.model_utils.get_generator(
             self._val_filenames, self._batch_size,
             original_batch_size=self._original_batch_size)
+        self._num_training_samples = len(self._train_filenames)*self._original_batch_size
+        self._num_validation_samples = len(self._val_filenames)*self._original_batch_size
         
     def get_train_generator(self):
         if self._train_batch_generator is None:
