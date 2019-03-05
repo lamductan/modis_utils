@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 import tensorflow.keras as keras
+from tensorflow.python.keras.layers import BatchNormalization, TimeDistributed
 
 from modis_utils.generators import OneOutputGenerator
 from modis_utils.misc import get_data_test, get_target_test, cache_data
@@ -31,10 +32,15 @@ class ConvLSTMSimpleOneTimeStepsOutput:
         source = keras.Input(
             name='seed', shape=input_shape, dtype=tf.float32)
         model = conv_lstm_2D(filters=128, kernel_size=3, strides=1, padding='same')(source)
+        model = BatchNormalization()(model)
         model = conv_lstm_2D(filters=128, kernel_size=3, strides=1, padding='same')(model)
+        model = BatchNormalization()(model)
         model = conv_lstm_2D(filters=128, kernel_size=3, strides=1, padding='same')(model)
+        model = BatchNormalization()(model)
         model = conv_lstm_2D(filters=128, kernel_size=3, strides=1, padding='same')(model)
+        model = BatchNormalization()(model)
         model = conv_lstm_2D(filters=128, kernel_size=3, strides=1, padding='same', return_sequences=False)(model)
+        model = BatchNormalization()(model)
         predict_img = conv_2D(filters=1, kernel_size=3, strides=1, padding='same')(model)
         model = keras.Model(inputs=[source], outputs=[predict_img])
         
@@ -76,6 +82,7 @@ class ConvLSTMSimpleOneTimeStepsOutput:
             cache_data(mask_lake_img(pred), predict_mask_lake_path)
 
 
+
 class ConvLSTMSimpleSequenceTimeStepsOutput:
     
     def get_generator(data_filenames, batch_size, original_batch_size):
@@ -97,11 +104,16 @@ class ConvLSTMSimpleSequenceTimeStepsOutput:
         source = keras.Input(
             name='seed', shape=input_shape, dtype=tf.float32)
         model = conv_lstm_2D(filters=128, kernel_size=3, strides=1, padding='same')(source)
+        model = BatchNormalization()(model)
         model = conv_lstm_2D(filters=128, kernel_size=3, strides=1, padding='same')(model)
+        model = BatchNormalization()(model)
         model = conv_lstm_2D(filters=128, kernel_size=3, strides=1, padding='same')(model)
+        model = BatchNormalization()(model)
         model = conv_lstm_2D(filters=128, kernel_size=3, strides=1, padding='same')(model)
+        model = BatchNormalization()(model)
         model = conv_lstm_2D(filters=128, kernel_size=3, strides=1, padding='same')(model)
-        predict_imgs = conv_2D(filters=1, kernel_size=3, strides=1, padding='same')(model)
+        model = BatchNormalization()(model)
+        predict_imgs = TimeDistributed(conv_2D(filters=1, kernel_size=3, strides=1, padding='same'))(model)
         model = keras.Model(inputs=[source], outputs=[predict_imgs])
         
         # Compile model
