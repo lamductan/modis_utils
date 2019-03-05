@@ -4,6 +4,7 @@ from scipy import misc
 from shutil import make_archive
 from matplotlib import pyplot as plt
 
+import tensorflow as tf
 from tensorflow.python.keras import backend as K
 from tensorflow.python.keras.utils import plot_model
 from tensorflow.python.keras.callbacks import ModelCheckpoint
