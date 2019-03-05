@@ -395,3 +395,12 @@ def get_max_value(data_dir, used_band, list_years, n_data_per_year, day_period):
             except:
                 pass
     return MAX
+
+
+def get_water_area(mask_lake, img_type='modis'):
+    if img_type == 'modis':
+        return np.sum(mask_lake)*0.25*0.25
+    elif img_type == 'sar':
+        return np.sum(mask_lake)*0.01*0.01
+    else:
+        return np.sum(mask_lake)
