@@ -96,7 +96,9 @@ class ModisUtils:
         self._val_filenames = None
         self._train_batch_generator = None
         self._val_batch_generator = None
-
+        self._num_training_samples = None
+        self._num_validation_samples = None
+        
         self.model_utils = get_model_utils(self._model_name, self._output_timesteps)
 
         if os.path.exists(self._data_augment_merged_dir):
@@ -111,9 +113,6 @@ class ModisUtils:
         self._weights_dir = os.path.join('weights', self._model_prefix)
         self._result_dir = os.path.join('result', self._model_prefix)
         self._predict_dir = os.path.join('predict', self._model_prefix)
-        
-        self._num_training_samples = None
-        self._num_validation_samples = None
         
         self._monitor = monitor
         self._monitor_mode = monitor_mode
