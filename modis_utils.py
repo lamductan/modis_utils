@@ -188,8 +188,11 @@ class ModisUtils:
             
             data_augment_merged_dir = os.path.join(self._data_augment_merged_dir, data_type)
             merge_data_augment(data_augment_dir, data_augment_merged_dir)
+
+        self._set_generator()
         self._num_training_samples = len(self._train_filenames)*self._original_batch_size
         self._num_validation_samples = len(self._val_filenames)*self._original_batch_size
+    
         
     def make_archive_augment_data(self):
         make_archive('data_augment_merged', 'zip', '.', self._data_augment_merged_dir)
