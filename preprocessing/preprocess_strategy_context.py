@@ -1,5 +1,6 @@
 from modis_utils.preprocessing.preprocess_strategy import NormalizedStrategy
 from modis_utils.preprocessing.preprocess_strategy import NormalizedDivStrategy
+from modis_utils.preprocessing.preprocess_strategy import NotPreprocessStrategy
 
 
 class PreprocessStrategyContext:
@@ -10,6 +11,8 @@ class PreprocessStrategyContext:
             self.strategy = NormalizedDivStrategy()
         elif modis_utils_obj._preprocessed_type == 'normalized_zero_one':
             self.strategy = NormalizedStrategy(modis_utils_obj)
+        elif modis_utils_obj._preprocessed_type == 'not_preprocessed':
+            self.strategy = NotPreprocessStrategy()
         else:
             raise ValueError
 

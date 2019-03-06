@@ -1,6 +1,7 @@
 import os
 import numpy as np
 from scipy import misc
+import shutil
 from shutil import make_archive
 from matplotlib import pyplot as plt
 
@@ -156,9 +157,13 @@ class ModisUtils:
                 
 
     def create_water_cloud_mask(self):
-        create_water_cloud_mask(
-            self._raw_data_dir, self._used_band, self._year_range, self._n_data_per_year,
-            self._day_period, self._mask_data_dir, self._resize_input)
+        if self._preprocessed_type == 'not_preprocessed':
+            shutil.copytree('../sequence_output/masked_data', 'masked_data')
+        else:
+            create_water_cloud_mask(
+                self._raw_data_dir, self._used_band, self._year_range,
+                self._n_data_per_year, self._day_period, self._mask_data_dir,
+                self._resize_input)
 
     
     def preprocess_data(self):
@@ -381,7 +386,10 @@ class ModisUtils:
             return None
 
     def create_predict_mask_lake(self, data_type='test'):
-        self.model_utils.create_predict_mask_lake(self, data_type)
+        if self._preprocessed_type == 'not_preprocessed':
+            shutil.copytree('preprocessed_data', 'predict_mask_lake')
+        else:
+            self.model_utils.create_predict_mask_lake(self, data_type)
 
     def get_predict_mask_lake(self, data_type='test', idx=0):
         predict_mask_lake_path = os.path.join(

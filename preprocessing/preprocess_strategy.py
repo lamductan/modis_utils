@@ -9,7 +9,7 @@ class PreprocessStrategy:
         self.fn = None
 
     def _preprocess_data(self, data_dir, used_band, year_range, n_data_per_year,
-                         day_period, preprocessed_data_dir, resize_input):
+                         day_period, preprocessed_data_dir, resize_input=None):
         for year in range(year_range[0], year_range[1] + 1):
             for d in range(n_data_per_year):
                 day = d*day_period + 1
@@ -46,11 +46,13 @@ class NormalizedDivStrategy(PreprocessStrategy):
         change_fill_value_data_dir = os.path.join(
             modis_utils_obj._preprocessed_data_dir_prefix, 'change_fill_value')
         change_fill_value(
-            modis_utils_obj._raw_data_dir, modis_utils_obj._used_band, modis_utils_obj._year_range,
-            modis_utils_obj._n_data_per_year, modis_utils_obj._day_period, change_fill_value_data_dir)
+            modis_utils_obj._raw_data_dir, modis_utils_obj._used_band,
+            modis_utils_obj._year_range, modis_utils_obj._n_data_per_year,
+            modis_utils_obj._day_period, change_fill_value_data_dir)
         super()._preprocess_data(
-            change_fill_value_data_dir, '', self._year_range,
-            self._n_data_per_year, self._day_period, self._preprocessed_data_dir)
+            change_fill_value_data_dir, '', modis_utils_obj._year_range,
+            modis_utils_obj._n_data_per_year, modis_utils_obj._day_period,
+            modis_utils_obj._preprocessed_data_dir, modis_utils_obj._resize_input)
 
 
 class NormalizedStrategy(PreprocessStrategy):
@@ -70,9 +72,24 @@ class NormalizedStrategy(PreprocessStrategy):
         change_fill_value_data_dir = os.path.join(
             modis_utils_obj._preprocessed_data_dir_prefix, 'change_fill_value')
         change_fill_value(
-            modis_utils_obj._raw_data_dir, modis_utils_obj._used_band, modis_utils_obj._year_range,
-            modis_utils_obj._n_data_per_year, modis_utils_obj._day_period, change_fill_value_data_dir)
+            modis_utils_obj._raw_data_dir, modis_utils_obj._used_band, 
+            modis_utils_obj._year_range, modis_utils_obj._n_data_per_year,
+            modis_utils_obj._day_period, change_fill_value_data_dir)
         super()._preprocess_data(
             change_fill_value_data_dir, '', modis_utils_obj._year_range,
+            modis_utils_obj._n_data_per_year, modis_utils_obj._day_period,
+            modis_utils_obj._preprocessed_data_dir, modis_utils_obj._resize_input)
+
+
+class NotPreprocessStrategy(PreprocessStrategy):
+    def __init__(self):
+        self.fn = lambda x: x
+    
+    def inverse(self, data):
+        return data
+
+    def preprocess_data(self, modis_utils_obj):
+        super()._preprocess_data(
+            modis_utils_obj._raw_data_dir, '', modis_utils_obj._year_range,
             modis_utils_obj._n_data_per_year, modis_utils_obj._day_period,
             modis_utils_obj._preprocessed_data_dir, modis_utils_obj._resize_input)
