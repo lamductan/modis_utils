@@ -40,7 +40,8 @@ class ModisUtils:
                  TPU_FLAG=False,
                  training=True,
                  monitor=None,
-                 monitor_mode='min'):
+                 monitor_mode='min',
+                 resize_input=None):
         # Define parameters
         self._modis_product = modis_product
         self._reservoir_index = reservoir_index
@@ -55,6 +56,7 @@ class ModisUtils:
         self._year_range = year_range
         self._original_batch_size = original_batch_size
         self._TPU_FLAG = TPU_FLAG
+        self._resize_input = resize_input
         
         # Dir and Dir prefix
         self._dir_prefix = os.path.join(
@@ -128,6 +130,7 @@ class ModisUtils:
 
         self.inference_model = None
 
+
         # Strategy objects
         self._preprocess_strategy_context = PreprocessStrategyContext(self)
 
@@ -154,8 +157,8 @@ class ModisUtils:
 
     def create_water_cloud_mask(self):
         create_water_cloud_mask(
-            self._raw_data_dir, self._used_band, self._year_range,
-            self._n_data_per_year, self._day_period, self._mask_data_dir)
+            self._raw_data_dir, self._used_band, self._year_range, self._n_data_per_year,
+            self._day_period, self._mask_data_dir, self._resize_input)
 
     
     def preprocess_data(self):
@@ -364,8 +367,8 @@ class ModisUtils:
     def create_groundtruth_mask_lake(self):
         if not os.path.exists(self._groundtruth_mask_lake_dir):
             create_groundtruth_mask_lake(
-                self._raw_data_dir, self._used_band, self._year_range,
-                self._n_data_per_year, self._day_period, self._groundtruth_mask_lake_dir)
+                self._raw_data_dir, self._used_band, self._year_range, self._n_data_per_year,
+                self._day_period, self._groundtruth_mask_lake_dir, self._resize_input)
 
     def get_groundtruth_mask_lake(self, data_type='test', idx=0):
         yearday = self._get_yearday(data_type, idx)

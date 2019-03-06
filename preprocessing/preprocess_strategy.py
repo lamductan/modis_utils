@@ -8,8 +8,8 @@ class PreprocessStrategy:
     def __init__(self):
         self.fn = None
 
-    def _preprocess_data(self, data_dir, used_band, year_range,
-                         n_data_per_year, day_period, preprocessed_data_dir):
+    def _preprocess_data(self, data_dir, used_band, year_range, n_data_per_year,
+                         day_period, preprocessed_data_dir, resize_input):
         for year in range(year_range[0], year_range[1] + 1):
             for d in range(n_data_per_year):
                 day = d*day_period + 1
@@ -20,6 +20,8 @@ class PreprocessStrategy:
                     filename = list(filter(lambda x: used_band in x, list_imgs))[0]
                     img = restore_data(os.path.join(current_data_dir, filename))
                     normalized_img = self.fn(img)
+                    if resize_input:
+                        normalized_img = normalized_img[:resize_input, :resize_input]
                     cur_dest_dir = os.path.join(preprocessed_data_dir, prefix)
                     if not os.path.exists(cur_dest_dir):
                         os.makedirs(cur_dest_dir)
@@ -73,4 +75,4 @@ class NormalizedStrategy(PreprocessStrategy):
         super()._preprocess_data(
             change_fill_value_data_dir, '', modis_utils_obj._year_range,
             modis_utils_obj._n_data_per_year, modis_utils_obj._day_period,
-            modis_utils_obj._preprocessed_data_dir)
+            modis_utils_obj._preprocessed_data_dir, modis_utils_obj._resize_input)

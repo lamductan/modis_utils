@@ -13,8 +13,8 @@ LAND_DRY_FLAG = 3
 LABELS = [WATER_FLAG, LAND_WET_FLAG, LAND_DRY_FLAG]
 
 
-def create_water_cloud_mask(data_dir, used_band, year_range,
-                            n_data_per_year, day_period, mask_data_dir):
+def create_water_cloud_mask(data_dir, used_band, year_range, n_data_per_year,
+                            day_period, mask_data_dir, resize_input):
     for year in range(year_range[0], year_range[1] + 1):
         for d in range(n_data_per_year):
             day = d*day_period + 1
@@ -22,6 +22,8 @@ def create_water_cloud_mask(data_dir, used_band, year_range,
             current_data_dir = os.path.join(data_dir, prefix)
             try:
                 water_cloud_mask = mask_cloud_and_water(current_data_dir, used_band)
+                if resize_input:
+                    water_cloud_mask = water_cloud_mask[:resize_input, :resize_input]
                 cur_mask_data_dir = os.path.join(mask_data_dir, prefix)
                 if not os.path.exists(cur_mask_data_dir):
                     os.makedirs(cur_mask_data_dir)
@@ -33,7 +35,7 @@ def create_water_cloud_mask(data_dir, used_band, year_range,
 
 
 def create_groundtruth_mask_lake(data_dir, used_band, year_range, n_data_per_year,
-                                 day_period, groundtruth_mask_lake_dir):
+                                 day_period, groundtruth_mask_lake_dir, resize_input):
     for year in range(year_range[0], year_range[1] + 1):
         for d in range(n_data_per_year):
             day = d*day_period + 1
@@ -43,6 +45,8 @@ def create_groundtruth_mask_lake(data_dir, used_band, year_range, n_data_per_yea
                 list_imgs = os.listdir(current_data_dir)
                 band_filename = list(filter(lambda x: used_band in x, list_imgs))[0]
                 img = rio.open(os.path.join(current_data_dir, band_filename), 'r').read(1)
+                if resize_input:
+                    img = img[:resize_input, :resize_input]
                 groundtruth_mask_lake = mask_lake_img(img, offset=1000)
                 cur_mask_data_dir = os.path.join(groundtruth_mask_lake_dir, prefix)
                 if not os.path.exists(cur_mask_data_dir):
