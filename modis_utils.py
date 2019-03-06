@@ -299,7 +299,7 @@ class ModisUtils:
     def set_inference_model(self, inference_model):
         self.inference_model = inference_model
 
-    def get_n_tests(self, data_type):
+    def get_n_tests(self, data_type='test'):
         file_path = self._data_files[data_type]['data']
         return len(get_data_paths(file_path))
 
@@ -333,6 +333,20 @@ class ModisUtils:
         if not os.path.exists(inference_path):
             self.inference(data_type, idx)
         return restore_data(inference_path)
+
+    def _get_yearday(self, data_type, idx):
+        file_path = self._data_files[data_type]['target']
+        filename = get_target_paths(file_path)[idx][0]
+        yearday = filename.split('/')[-2]
+        return yearday
+
+    def get_groundtruth(self, data_type, idx):
+        target_file_path = self._data_files[data_type]['target']
+        return get_target_test(target_file_path, idx)
+
+    def get_water_cloud_mask(self, data_type, idx):
+        mask_file_path = self._data_files[data_type]['mask']
+        return get_target_test(mask_file_path, idx)
     
     def eval(self, data_type='test', idx=0, metric=None):
         return self.model_utils.eval(self, data_type, idx, metric)
@@ -340,7 +354,7 @@ class ModisUtils:
     def eval_all(self, data_type='test', metric=None):
         eval_list = []
         n = self.get_n_tests(data_type)
-        for i in n:
+        for i in range(n):
             eval_list.append(self.eval(data_type, i, metric))
         return eval_list
 
@@ -354,10 +368,8 @@ class ModisUtils:
                 self._n_data_per_year, self._day_period, self._groundtruth_mask_lake_dir)
 
     def get_groundtruth_mask_lake(self, data_type='test', idx=0):
-        file_path = self._data_files[data_type]['target']
-        filename = get_target_paths(file_path)[idx][0]
-        yearday = filename.split('/')[-2]
-        year = yearday[:-4]
+        yearday = self._get_yearday(data_type, idx)
+        year = yearday[:-3]
         groundtruth_mask_lake_path = os.path.join(
             self._groundtruth_mask_lake_dir, year, yearday, 'masked.dat')
         if os.path.exists(groundtruth_mask_lake_path):

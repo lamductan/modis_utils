@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import tensorflow as tf
 import tensorflow.keras as keras
@@ -78,9 +79,8 @@ class ConvLSTMSimpleOneTimeStepsOutput:
             pred = modis_utils_obj.get_inference(data_type, idx)
             pred = modis_utils_obj._preprocess_strategy_context.inverse(pred)
             predict_mask_lake_path = os.path.join(
-                modis_utils_obj._predict_mask_lake, data_type, '{}.dat'.format(idx))
+                modis_utils_obj._predict_mask_lake_dir, data_type, '{}.dat'.format(idx))
             cache_data(mask_lake_img(pred), predict_mask_lake_path)
-
 
 
 class ConvLSTMSimpleSequenceTimeStepsOutput:
@@ -152,5 +152,7 @@ class ConvLSTMSimpleSequenceTimeStepsOutput:
             pred = pred[0]
             pred = modis_utils_obj._preprocess_strategy_context.inverse(pred)
             predict_mask_lake_path = os.path.join(
-                modis_utils_obj._predict_mask_lake, data_type, '{}.dat'.format(idx))
+                modis_utils_obj._predict_mask_lake_dir, data_type, '{}.dat'.format(idx))
             cache_data(mask_lake_img(pred), predict_mask_lake_path)
+
+    

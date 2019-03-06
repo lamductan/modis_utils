@@ -4,6 +4,7 @@ import pickle
 import numpy as np
 from scipy import misc
 import tensorflow as tf
+import matplotlib.pyplot as plt
 
 #List of years for MOD13Q1 only
 TRAIN_LIST_YEARS_DEFAULT = [2000, 2001, 2002, 2003, 2004, 
@@ -404,3 +405,20 @@ def get_water_area(mask_lake, img_type='modis'):
         return np.sum(mask_lake)*0.01*0.01
     else:
         return np.sum(mask_lake)
+
+
+def plot_two_arrays(arr1, arr2, legend=None, title=None):
+    if legend is None or not isinstance(legend, list) or len(legend) < 2:
+        legend = ['predict', 'groundtruth']
+    fig, ax = plt.subplots(1,1,figsize=(20,8))
+    ax.plot(arr1, marker='o', c='r', linestyle='-', label=legend[0])
+    ax.plot(arr2, marker='o', c='b', linestyle='-', label=legend[1])
+    ax.legend()
+    ax.set_xlabel('Day')
+    ax.set_ylabel('Water Area (km^2)')
+
+    if title is None:
+        title = 'Groundtruth-Predict Water Area 2018'
+    ax.set_title(title)
+    plt.savefig(title)
+    plt.show()

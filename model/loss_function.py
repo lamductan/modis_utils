@@ -1,7 +1,6 @@
 import numpy as np
 import tensorflow as tf
 
-# Define loss and metrics
 # PSNR
 def PSNRLoss(y_true_and_mask, y_pred):
     y_true, y_mask = tf.split(y_true_and_mask, 2, axis=-1)
