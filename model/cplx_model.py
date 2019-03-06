@@ -25,7 +25,7 @@ class SkipConvLSTMSingleOutput:
         input_timesteps = modis_utils_obj._input_timesteps
         output_timesteps = modis_utils_obj._output_timesteps
         compile_params = modis_utils_obj._compile_params
-        return ConvLSTMSimpleOneTimeStepsOutput._create_model(
+        return SkipConvLSTMSingleOutput._create_model(
             crop_size, crop_size, input_timesteps, compile_params)
     
     def _create_model(img_height, img_width, input_timesteps, compile_params):
@@ -33,13 +33,13 @@ class SkipConvLSTMSingleOutput:
         x = Input(shape=input_shape, name='input')
 
         encoder_input_shape = input_shape[1:]
-        encode_block = self._create_encoder(encoder_input_shape)
+        encode_block = SkipConvLSTMSingleOutput._create_encoder(encoder_input_shape)
         net = TimeDistributed(encode_block)(x)
 
         net = ConvLSTM2D(filters=128, kernel_size=3, padding='same', return_sequences=True)(net)
         hidden = ConvLSTM2D(filters=80, kernel_size=3, padding='same', return_sequences=False)(net)
 
-        decode_block = self._create_decoder(hidden.shape[1:], encode_block)
+        decode_block = SkipConvLSTMSingleOutput._create_decoder(hidden.shape[1:], encode_block)
         net = decode_block([hidden, Lambda(lambda x: x[:,-1,:,:,:])(x)])
 
         model = Model(inputs=x, outputs=net, name='skip_conv_single_output')
