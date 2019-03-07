@@ -68,6 +68,6 @@ def mse_with_mask_batch(groundtruth, predict, mask=None, mask_cloud=0):
 
 def sum_loss_tf(y_true_and_mask, y_pred):
     y_true, y_mask = tf.split(y_true_and_mask, 2, axis=-1)
-    sum_true = tf.reduce_sum(y_true)
-    sum_pred = tf.reduce_sum(y_pred)
-    return tf.sqrt((sum_true - sum_pred)**2)
+    sum_true = tf.reduce_sum(y_true, axis=0)
+    sum_pred = tf.reduce_sum(y_pred, axis=0)
+    return tf.reduce_mean(tf.sqrt((sum_true - sum_pred)**2))
