@@ -22,7 +22,7 @@ class OneOutputGenerator(MyGenerator):
         i = idx % self.k
         batch_X = data[0][i*self.batch_size:(i+1)*self.batch_size]
         batch_y = data[1][i*self.batch_size:(i+1)*self.batch_size]
-        return batch_X, batch_y
+        return batch_X.astype(np.float32), batch_y.astype(np.float32)
 
 
 class MultipleOutputGenerator(MyGenerator):
@@ -30,6 +30,6 @@ class MultipleOutputGenerator(MyGenerator):
     def __getitem__(self, idx):         
         data = restore_data(self.data_filenames[idx // self.k])
         i = idx % self.k
-        batch_X = data[0][i*self.batch_size:(i+1)*self.batch_size]
-        batch_y = data[1][i*self.batch_size:(i+1)*self.batch_size]
+        batch_X = data[0][i*self.batch_size:(i+1)*self.batch_size].astype(np.float32)
+        batch_y = data[1][i*self.batch_size:(i+1)*self.batch_size].astype(np.float32)
         return batch_X, [batch_y, batch_X]
