@@ -5,7 +5,7 @@ import tensorflow.keras as keras
 from tensorflow.python.keras.models import Model
 from tensorflow.python.keras.layers import BatchNormalization, TimeDistributed
 from tensorflow.python.keras.layers import Conv2D, ConvLSTM2D, Conv2DTranspose
-from tensorflow.python.keras.layers import Input, Add, Lambda, Dense
+from tensorflow.python.keras.layers import Input, Add, Lambda, Dense, Activation
 
 from modis_utils.generators import OneOutputGenerator
 from modis_utils.misc import get_data_test, get_target_test, cache_data
@@ -37,10 +37,13 @@ class SkipConvLSTMSingleOutput:
         net = TimeDistributed(encode_block)(x)
 
         net = ConvLSTM2D(filters=128, kernel_size=3, padding='same', return_sequences=True)(net)
+        net = BatchNormalization()(net)
         hidden = ConvLSTM2D(filters=80, kernel_size=3, padding='same', return_sequences=False)(net)
+        hidden = BatchNormalization()(hidden)
 
         decode_block = SkipConvLSTMSingleOutput._create_decoder(hidden.shape[1:], encode_block)
         net = decode_block([hidden, Lambda(lambda x: x[:,-1,:,:,:])(x)])
+        net = Activation('sigmoid')(net)
 
         model = Model(inputs=x, outputs=net, name='skip_conv_single_output')
         model = compile_model(model, compile_params)
@@ -84,8 +87,11 @@ class SkipConvLSTMSingleOutput:
     def _create_encoder(input_shape):
         x = Input(shape=input_shape, name='encoder_input')
         net = Conv2D(filters=48, kernel_size=3, strides=2, name='conv1')(x)
+        net = BatchNormalization()(net)
         net = Conv2D(filters=64, kernel_size=3, strides=2, name='conv2')(net)
+        net = BatchNormalization()(net)
         net = Conv2D(filters=80, kernel_size=3, strides=2, name='conv3')(net)
+        net = BatchNormalization()(net)
         net = Model(inputs=x, outputs=net, name='encoder')
         return net
 
@@ -98,13 +104,16 @@ class SkipConvLSTMSingleOutput:
         conv2 = encode_block.get_layer('conv2').output
         net = Conv2DTranspose(filters=64, kernel_size=3, strides=2, name='dconv1')(x)
         net = Add()([net, conv2])
+        net = BatchNormalization()(net)
         
         net = Conv2DTranspose(filters=32, kernel_size=3, strides=2, name='dconv2')(net)
-        
+        net = BatchNormalization()(net)
+
         encoder_input = encode_block.get_layer('encoder_input').output
         net = Conv2DTranspose(filters=1, kernel_size=3, strides=2, name='dconv3')(net)
         net = Add()([net, encoder_input])
-        
+        net = BatchNormalization()(net)
+
         net = Model(inputs=[x, encode_block.input], outputs=net, name='decoder')
         return net
 
