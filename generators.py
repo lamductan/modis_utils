@@ -1,3 +1,4 @@
+import numpy as np
 from modis_utils.misc import restore_data
 from tensorflow.python.keras.utils import Sequence
 
