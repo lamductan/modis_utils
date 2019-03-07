@@ -13,6 +13,8 @@ class PreprocessStrategyContext:
             self.strategy = NormalizedStrategy(modis_utils_obj)
         elif modis_utils_obj._preprocessed_type == 'not_preprocessed':
             self.strategy = NotPreprocessStrategy()
+        elif modis_utils_obj._preprocessed_type == 'Zhang':
+            self.strategy = NotPreprocessStrategy()
         else:
             raise ValueError
 

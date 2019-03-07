@@ -12,7 +12,7 @@ from tensorflow.python.keras.callbacks import ModelCheckpoint
 from tensorflow.python.keras.callbacks import LearningRateScheduler, CSVLogger
 
 from modis_utils.preprocessing.preprocess_strategy_context import PreprocessStrategyContext
-from modis_utils.image_processing import create_water_cloud_mask, create_groundtruth_mask_lake
+from modis_utils.image_processing import create_water_cloud_mask, create_groundtruth_mask_lake, create_one_only_mask
 from modis_utils.misc import create_data_file_continuous_years, get_data_file_path
 from modis_utils.preprocessing.random_crop import augment_one_reservoir_without_cache
 from modis_utils.preprocessing.random_crop import merge_data_augment
@@ -159,6 +159,11 @@ class ModisUtils:
     def create_water_cloud_mask(self):
         if self._preprocessed_type == 'not_preprocessed':
             shutil.copytree('../sequence_output/masked_data', 'masked_data')
+        elif self._preprocessed_type == 'Zhang':
+            create_one_only_mask(
+                self._raw_data_dir, '', self._year_range,
+                self._n_data_per_year, self._day_period, self._mask_data_dir,
+                self._resize_input)
         else:
             create_water_cloud_mask(
                 self._raw_data_dir, self._used_band, self._year_range,

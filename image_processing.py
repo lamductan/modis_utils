@@ -34,6 +34,28 @@ def create_water_cloud_mask(data_dir, used_band, year_range, n_data_per_year,
                     used_band, year, day, current_data_dir))
 
 
+def create_one_only_mask(data_dir, used_band, year_range, n_data_per_year,
+                         day_period, mask_data_dir, resize_input):
+    for year in range(year_range[0], year_range[1] + 1):
+        for d in range(n_data_per_year):
+            day = d*day_period + 1
+            prefix = os.path.join(str(year), str(year) + str(day).zfill(3))
+            current_data_dir = os.path.join(data_dir, prefix)
+            try:
+                data = restore_data(os.path.join(current_data_dir, 'masked.dat'))
+                mask = np.ones_like(data)
+                if resize_input:
+                    mask = mask[:resize_input, :resize_input]
+                cur_mask_data_dir = os.path.join(mask_data_dir, prefix)
+                if not os.path.exists(cur_mask_data_dir):
+                    os.makedirs(cur_mask_data_dir)
+                cache_data(
+                    mask, os.path.join(cur_mask_data_dir, 'masked.dat'))
+            except:
+                print('Not found band {} in {}{:03} in {}.'.format(
+                    used_band, year, day, current_data_dir))
+
+
 def create_groundtruth_mask_lake(data_dir, used_band, year_range, n_data_per_year,
                                  day_period, groundtruth_mask_lake_dir, resize_input):
     for year in range(year_range[0], year_range[1] + 1):

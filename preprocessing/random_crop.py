@@ -133,6 +133,14 @@ def _generate_on_boundaries(data_paths, target_paths, mask_paths,
         boundaries = find_boundaries(target_img)
         pos = np.where(boundaries)
         n_pos = len(pos[0])
+        ii = 1
+        while n_pos < n_samples:
+            target_img = data_merged[0, -2*output_timesteps + ii, :, :]
+            already = set()
+            boundaries = find_boundaries(target_img)
+            pos = np.where(boundaries)
+            n_pos = len(pos[0])
+            ii += 1
         for i in range(n_samples):
             while True:
                 offset_x = pos[0][np.random.randint(n_pos)]
