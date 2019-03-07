@@ -375,6 +375,9 @@ class ModisUtils:
         return self.model_utils.visualize_result(self, data_type, idx)
 
     def create_groundtruth_mask_lake(self):
+        if self._preprocessed_type == 'Zhang':
+            self._groundtruth_mask_lake_dir = self._preprocessed_data_dir
+            return
         if not os.path.exists(self._groundtruth_mask_lake_dir):
             create_groundtruth_mask_lake(
                 self._raw_data_dir, self._used_band, self._year_range, self._n_data_per_year,
@@ -385,14 +388,17 @@ class ModisUtils:
         year = yearday[:-3]
         groundtruth_mask_lake_path = os.path.join(
             self._groundtruth_mask_lake_dir, year, yearday, 'masked.dat')
+        if self._preprocessed_type == 'Zhang':
+            groundtruth_mask_lake_path = os.path.join(
+            self._groundtruth_mask_lake_dir, year, yearday, 'preprocessed.dat')
         if os.path.exists(groundtruth_mask_lake_path):
             return restore_data(groundtruth_mask_lake_path)
         else:
             return None
 
     def create_predict_mask_lake(self, data_type='test'):
-        if self._preprocessed_type == 'not_preprocessed':
-            shutil.copytree('preprocessed_data', 'predict_mask_lake')
+        if self._preprocessed_type == 'not_preprocessed' or self._preprocessed_type == 'Zhang':
+            shutil.copytree('predict', 'predict_mask_lake')
         else:
             self.model_utils.create_predict_mask_lake(self, data_type)
 

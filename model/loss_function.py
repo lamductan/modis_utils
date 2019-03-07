@@ -65,3 +65,9 @@ def mse_with_mask_batch(groundtruth, predict, mask=None, mask_cloud=0):
         loss.append(mse_with_mask(groundtruth[i], predict[i], mask, mask_cloud))
     return [loss[0], np.mean(np.asarray(loss, dtype=np.float32))]
 
+
+def sum_loss_tf(y_true_and_mask, y_pred):
+    y_true, y_mask = tf.split(y_true_and_mask, 2, axis=-1)
+    sum_true = tf.reduce_sum(y_true)
+    sum_pred = tf.reduce_sum(y_pred)
+    return tf.sqrt(sum_true - sum_pred)
