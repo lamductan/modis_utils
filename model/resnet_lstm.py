@@ -43,7 +43,7 @@ class ResnetLSTMSingleOutput:
         return ResnetLSTMSingleOutput._create_model(
             crop_size, crop_size, input_timesteps, compile_params)
     
-    def _create_model(img_height, img_width, input_timesteps, compile_params, weights='imagenet'):
+    def _create_model(img_height, img_width, input_timesteps, compile_params, weights=None):
         # Prepair
         input_shape = (input_timesteps, img_height, img_width, 1)
 
