@@ -40,7 +40,7 @@ class ResnetLSTMSingleOutput:
         input_timesteps = modis_utils_obj._input_timesteps
         output_timesteps = modis_utils_obj._output_timesteps
         compile_params = modis_utils_obj._compile_params
-        return ConvLSTMSimpleOneTimeStepsOutput._create_model(
+        return ResnetLSTMSingleOutput._create_model(
             crop_size, crop_size, input_timesteps, compile_params)
     
     def _create_model(img_height, img_width, input_timesteps, compile_params, weights='imagenet'):
