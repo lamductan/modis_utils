@@ -337,7 +337,6 @@ def ResNet50(include_top=True, weights='imagenet',
 def resnet_encoder(input_shape, weights=None):
     inputs = Input(shape=input_shape)
     resnet_encoder = ResNet50(include_top=False, weights=weights, input_shape=input_shape)(inputs)
-    resnet_encoder = Dense(4096)(resnet_encoder)
     resnet_encoder = Reshape(target_shape=(64, 64, 1))(resnet_encoder)
     model = Model(inputs, resnet_encoder, name='resnet_encoder')
     return model
