@@ -1,5 +1,6 @@
 import os
 import csv
+import h5py
 import pickle
 import numpy as np
 from scipy import misc
@@ -60,17 +61,22 @@ def get_predict_mask_dir(data_dir, used_reservoir, used_band, crop_size,
 # Data
 def cache_data(data, path):
     """Save data (numpy array) to disk."""
-    token = path.split('/')
-    dir_prefix = ''
-    for t in token[:-1]:
-        dir_prefix = os.path.join(dir_prefix, t)
-    try:
+    dir_prefix = os.path.dirname(path)
+    if dir_prefix != '' and not os.path.exists(dir_prefix):
         os.makedirs(dir_prefix)
-    except:
-        pass
-    file = open(path, 'wb')
-    pickle.dump(data, file)
-    file.close()
+
+    if not isinstance(data, dict):
+        h5f = h5py.File(path, 'w')
+        if not isinstance(data, tuple) and not isinstance(data, list):
+            data = [data]
+        for i, x in enumerate(data):
+            h5f.create_dataset(str(i), data=x)
+        h5f.close()
+    else:
+        file = open(path, 'wb')
+        pickle.dump(data, file)
+        file.close()
+
 
 
 def to_float32(x):
@@ -83,17 +89,23 @@ def to_float32(x):
 
 
 def restore_data(path, convert_to_float32=False):
-    """Restore cached data from disk to memory."""
-    if path[-4:] != '.dat':
+    if path[-4:] != '.dat' and path[-3:] != '.h5':
         return get_im(path)
-
-    data = dict()
-    if os.path.isfile(path):
-        file = open(path, 'rb')
-        data = pickle.load(file)
-        file.close()
-        if convert_to_float32:
-            data = to_float32(data)
+    try:      
+        h5f = h5py.File(path, 'r')
+        list_of_names = []
+        h5f.visit(list_of_names.append)
+        data = []
+        for name in list_of_names:
+            data.append(h5f[name][:])
+            if convert_to_float32 and data:
+                data = to_float32(data)
+        h5f.close()
+    except:
+        with open(path, 'rb') as f:
+            data = pickle.load(f)
+    if len(data) == 1:
+        return data[0]
     return data
 
 

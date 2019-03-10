@@ -8,7 +8,7 @@ from modis_utils.misc import get_data_merged_from_paths
 from modis_utils.misc import get_data_paths, get_target_paths, get_mask_paths
 
 
-def random_crop_func(x, offset_x, offset_y, crop_size=32, random_crop=True):
+def _random_crop_func(x, offset_x, offset_y, crop_size=32, random_crop=True):
     return x[:,:, offset_y : offset_y+crop_size, offset_x : offset_x+crop_size]
 
 
@@ -112,9 +112,18 @@ def augment_one_reservoir_without_cache(data_files, data_augment_dir,
     mask_file = data_files[data_type]['mask']
     mask_paths = get_mask_paths(mask_file)
 
-    _generate_on_boundaries(data_paths, target_paths, mask_paths,
-                            data_augment_dir, crop_size, n_samples,
-                            input_time_steps, output_timesteps)
+    if crop_size == -1:
+        _generate_whole_image(data_paths, target_paths, mask_paths,
+                              data_augment_dir, input_time_steps,
+                              output_timesteps)
+    elif crop_size <= 80:
+        _generate_on_boundaries(data_paths, target_paths, mask_paths,
+                                data_augment_dir, crop_size, n_samples,
+                                input_time_steps, output_timesteps)
+    else:
+        _generate(data_paths, target_paths, mask_paths,
+                  data_augment_dir, crop_size, n_samples,
+                  input_time_steps, output_timesteps)
     return True
 
 
@@ -150,7 +159,7 @@ def _generate_on_boundaries(data_paths, target_paths, mask_paths,
                   (offset_x, offset_y) not in already:
                     break
             already.add((offset_x, offset_y))
-            batch = random_crop_func(data_merged, offset_x - half_crop_size,
+            batch = _random_crop_func(data_merged, offset_x - half_crop_size,
                     offset_y - half_crop_size, crop_size=crop_size)
             for j in range(batch.shape[0]):
                 cur = batch[j]
@@ -164,3 +173,58 @@ def _generate_on_boundaries(data_paths, target_paths, mask_paths,
                                          '{}.dat'.format(cnt))
                 cnt += 1
                 cache_data((data, target_mask), file_path)
+
+
+def _generate(data_paths, target_paths, mask_paths,
+              data_augment_dir, crop_size, n_samples,
+              input_time_steps, output_timesteps):
+    n_data = len(data_paths)
+    cnt = 0
+    for k in range(n_data):
+        data_merged = get_data_merged_from_paths(data_paths[k], target_paths[k],
+                                                 mask_paths[k])
+        for i in range(n_samples):
+            batch = _random_crop_func_1(data_merged, crop_size)
+            for j in range(batch.shape[0]):
+                cur = batch[j]
+                data = np.expand_dims(cur[:input_time_steps], axis=-1)
+                target = np.expand_dims(cur[-2*output_timesteps:-output_timesteps], axis=-1)
+                mask = np.expand_dims(cur[-output_timesteps:], axis=-1)
+                target_mask = np.concatenate((target, mask), axis=-1)
+                if not os.path.isdir(data_augment_dir):
+                    os.makedirs(data_augment_dir)
+                file_path = os.path.join(data_augment_dir,
+                                         '{}.dat'.format(cnt))
+                cnt += 1
+                cache_data((data, target_mask), file_path)
+
+
+def _random_crop_func_1(x, crop_size=32, random_crop=True):
+    '''x.shape = (n_data, time_step, img_height, img_width, channels) '''
+    h, w = x.shape[2:4]
+    offset_y = np.random.randint(h - crop_size)
+    offset_x = np.random.randint(w - crop_size)
+    return x[:,:, offset_y : offset_y+crop_size, offset_x : offset_x+crop_size]
+
+
+def _generate_whole_image(data_paths, target_paths, mask_paths,
+                          data_augment_dir, input_time_steps,
+                          output_timesteps):
+    n_data = len(data_paths)
+    for k in range(n_data):
+        data_merged = get_data_merged_from_paths(data_paths[k], target_paths[k],
+                                                 mask_paths[k])
+        data = data_merged[:, :-2*output_timesteps, :, :]
+        data = np.expand_dims(data, axis=-1)
+        target = data_merged[:, -2*output_timesteps:-output_timesteps, :, :]
+        target = np.expand_dims(data, axis=-1)
+        mask = data_merged[:, -output_timesteps:, :, :]
+        mask = np.expand_dims(data, axis=-1)
+        if target.shape[1] > 1:
+            target = target.squeeze(axis=1)
+            mask = mask.squeeze(axis=1)
+        target_mask = np.concatenate((target, mask), axis=-1)
+        if not os.path.isdir(data_augment_dir):
+            os.makedirs(data_augment_dir)
+        file_path = os.path.join(data_augment_dir, '{}.dat'.format(k))
+        cache_data((data, target_mask), file_path)

@@ -30,6 +30,7 @@ class ModisUtils:
                  preprocessed_type='normalized_div',
                  used_band='NDVI',
                  crop_size=32,
+                 n_samples=50,
                  input_timesteps=12,
                  output_timesteps=1,
                  year_range=(2000, 2018),
@@ -52,12 +53,16 @@ class ModisUtils:
         self._preprocessed_type = preprocessed_type
         self._used_band = used_band
         self._crop_size = crop_size
+        self._n_samples = n_samples
         self._input_timesteps = input_timesteps
         self._output_timesteps = output_timesteps
         self._year_range = year_range
         self._original_batch_size = original_batch_size
         self._TPU_FLAG = TPU_FLAG
         self._resize_input = resize_input
+
+        if self._crop_size == -1:
+            self._n_samples = 1
         
         # Dir and Dir prefix
         self._dir_prefix = os.path.join(
@@ -80,8 +85,12 @@ class ModisUtils:
             str(self._output_timesteps), str(self._crop_size))
         self._data_augment_dir = os.path.join(
             'data_augment', self._data_augment_dir_prefix)
-        self._data_augment_merged_dir = os.path.join(
-            'data_augment_merged', self._data_augment_dir_prefix)
+
+        if self._crop_size == -1:
+            self._data_augment_merged_dir = self._data_augment_dir
+        else:
+            self._data_augment_merged_dir = os.path.join(
+                'data_augment_merged', self._data_augment_dir_prefix)
         
         # Other parameters
         self._day_period = 8 if self._modis_product == 'ALL' else 16
@@ -191,16 +200,17 @@ class ModisUtils:
         return outputs
     
     
-    def augment_data(self, n_samples=50):
+    def augment_data(self):
         for data_type in ['train', 'val']:
             data_augment_dir = os.path.join(self._data_augment_dir, data_type)
             augment_one_reservoir_without_cache(
                 self._data_files, data_augment_dir, 
-                self._crop_size, n_samples, data_type,
+                self._crop_size, self._n_samples, data_type,
                 self._input_timesteps, self._output_timesteps)
             
-            data_augment_merged_dir = os.path.join(self._data_augment_merged_dir, data_type)
-            merge_data_augment(data_augment_dir, data_augment_merged_dir)
+            if self._crop_size != -1:
+                data_augment_merged_dir = os.path.join(self._data_augment_merged_dir, data_type)
+                merge_data_augment(data_augment_dir, data_augment_merged_dir, self._original_batch_size)
 
         self._set_generator()
         self._num_training_samples = len(self._train_filenames)*self._original_batch_size
@@ -217,7 +227,7 @@ class ModisUtils:
                                  for data_index in os.listdir(train_dir)]
         self._train_batch_generator = self.model_utils.get_generator(
             self._train_filenames, self._batch_size,
-            original_batch_size=self._original_batch_size)
+            original_batch_size=self._original_batch_size, )
         
         val_dir = os.path.join(self._data_augment_merged_dir, 'val')
         self._val_filenames = [os.path.join(val_dir, data_index)
