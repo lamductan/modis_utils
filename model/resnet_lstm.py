@@ -51,8 +51,8 @@ class ResnetLSTMSingleOutput:
         source = Input(
             name='seed', shape=input_shape, dtype=tf.float32)
         
-        resnet_encoder = ResNet50(include_top=False, weights=weights, input_shape=(img_height, img_width, 1))
-        net = TimeDistributed(resnet_encoder)(source)
+        resnet_encoder_block = resnet_encoder(input_shape=input_shape[1:], weights=weights)
+        net = TimeDistributed(resnet_encoder_block)(source)
         
         net = ConvLSTM2D(filters=128, kernel_size=3, padding='same', return_sequences=True)(net)
         net = BatchNormalization()(net)
@@ -332,6 +332,14 @@ def ResNet50(include_top=True, weights='imagenet',
                               '`image_data_format="channels_last"` in '
                               'your Keras config '
                               'at ~/.keras/keras.json.')
+    return model
+
+def resnet_encoder(input_shape, weights=None):
+    inputs = Input(shape=input_shape)
+    resnet_encoder = ResNet50(include_top=False, weights=weights, input_shape=input_shape)(inputs)
+    resnet_encoder = Dense(4096)(resnet_encoder)
+    resnet_encoder = Reshape(target_shape=(64, 64, 1))(resnet_encoder)
+    model = Model(inputs, resnet_encoder, name='resnet_encoder')
     return model
 
 
