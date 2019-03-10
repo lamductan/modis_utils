@@ -5,7 +5,7 @@ from tensorflow.python.keras.utils import Sequence
 
 class MyGenerator(Sequence):
     def __init__(self, data_filenames, batch_size, original_batch_size):
-        assert batch_size < original_batch_size
+        assert batch_size <= original_batch_size
         
         self.data_filenames = data_filenames
         self.batch_size = batch_size
