@@ -350,6 +350,9 @@ def resnet_encoder(input_shape, weights=None):
     resnet_encoder = Dense(encode_shape[0]*encode_shape[1])(resnet_encoder)
     resnet_encoder = Reshape(target_shape=(encode_shape[0], encode_shape[1], 1))(resnet_encoder)
     model = Model(inputs, resnet_encoder, name='resnet_encoder')
+    if weights:
+        for layer in model.layers[:-3]:
+            layer.trainable = False
     return model
 
 
