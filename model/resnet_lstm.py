@@ -289,9 +289,9 @@ def ResNet50(include_top=True, weights='imagenet',
     x = identity_block(x, 3, [256, 256, 1024], stage=4, block='e')
     x = identity_block(x, 3, [256, 256, 1024], stage=4, block='f')
 
-    x = conv_block(x, 3, [512, 512, 4096], stage=5, block='a')
-    x = identity_block(x, 3, [512, 512, 4096], stage=5, block='b')
-    x = identity_block(x, 3, [512, 512, 4096], stage=5, block='c')
+    x = conv_block(x, 3, [512, 512, 2048], stage=5, block='a')
+    x = identity_block(x, 3, [512, 512, 2048], stage=5, block='b')
+    x = identity_block(x, 3, [512, 512, 2048], stage=5, block='c')
 
     x = AveragePooling2D((7, 7), name='avg_pool')(x)
 
@@ -303,7 +303,6 @@ def ResNet50(include_top=True, weights='imagenet',
             x = GlobalAveragePooling2D()(x)
         elif pooling == 'max':
             x = GlobalMaxPooling2D()(x)
-        x = Reshape(target_shape=(64, 64, 1))(x)
     
     inputs = img_input
     # Create model.
@@ -346,6 +345,8 @@ def ResNet50(include_top=True, weights='imagenet',
 def resnet_encoder(input_shape, weights=None):
     inputs = Input(shape=input_shape)
     resnet_encoder = ResNet50(include_top=False, weights=weights, input_shape=input_shape)(inputs)
+    resnet_encoder = Flatten()(resnet_encoder)
+    resnet_encoder = Dense(4096)(resnet_encoder)
     resnet_encoder = Reshape(target_shape=(64, 64, 1))(resnet_encoder)
     model = Model(inputs, resnet_encoder, name='resnet_encoder')
     return model
