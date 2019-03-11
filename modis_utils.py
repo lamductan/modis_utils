@@ -288,7 +288,7 @@ class ModisUtils:
     def _set_checkpoint(self):
         if not os.path.exists(self._weights_dir):
             os.makedirs(self._weights_dir)
-        self._filepath = os.path.join(self._weights_dir, "weights-{epoch:02d}.h5")
+        self._filepath = os.path.join(self._weights_dir, "weights-{epoch:03d}.h5")
         self._checkpoint = ModelCheckpoint(
             self._filepath, monitor=self._monitor, mode=self._monitor_mode, verbose=1, period=5)
         self._csv_logger = CSVLogger(os.path.join(
