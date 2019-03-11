@@ -17,8 +17,8 @@ from modis_utils.image_processing import mask_lake_img
 
 class SkipConvLSTMSingleOutput:
     
-    def get_generator(data_filenames, batch_size, original_batch_size):
-        return OneOutputGenerator(data_filenames, batch_size, original_batch_size)
+    def get_generator(data_filenames, batch_size, original_batch_size, pretrained):
+        return OneOutputGenerator(data_filenames, batch_size, original_batch_size, pretrained)
 
     def create_model(modis_utils_obj):
         crop_size = modis_utils_obj._crop_size

@@ -43,7 +43,8 @@ class ModisUtils:
                  training=True,
                  monitor=None,
                  monitor_mode='min',
-                 resize_input=None):
+                 resize_input=None,
+                 pretrained=False):
         # Define parameters
         self._modis_product = modis_product
         self._reservoir_index = reservoir_index
@@ -60,6 +61,9 @@ class ModisUtils:
         self._original_batch_size = original_batch_size
         self._TPU_FLAG = TPU_FLAG
         self._resize_input = resize_input
+        self._pretrained = pretrained
+        if self._pretrained:
+            assert self._crop_size == 224
 
         if self._crop_size == -1:
             self._n_samples = 1
@@ -227,14 +231,14 @@ class ModisUtils:
                                  for data_index in os.listdir(train_dir)]
         self._train_batch_generator = self.model_utils.get_generator(
             self._train_filenames, self._batch_size,
-            original_batch_size=self._original_batch_size, )
+            self._original_batch_size, self._pretrained)
         
         val_dir = os.path.join(self._data_augment_merged_dir, 'val')
         self._val_filenames = [os.path.join(val_dir, data_index)
                                for data_index in os.listdir(val_dir)]
         self._val_batch_generator = self.model_utils.get_generator(
             self._val_filenames, self._batch_size,
-            original_batch_size=self._original_batch_size)
+            self._original_batch_size, self._pretrained)
         self._num_training_samples = len(self._train_filenames)*self._original_batch_size
         self._num_validation_samples = len(self._val_filenames)*self._original_batch_size
         

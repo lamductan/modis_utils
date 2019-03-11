@@ -32,20 +32,27 @@ from modis_utils.image_processing import mask_lake_img
 
 class ResnetLSTMSingleOutput:
     
-    def get_generator(data_filenames, batch_size, original_batch_size):
-        return OneOutputGenerator(data_filenames, batch_size, original_batch_size)
+    def get_generator(data_filenames, batch_size, original_batch_size, pretrained):
+        return OneOutputGenerator(data_filenames, batch_size, original_batch_size, pretrained)
 
     def create_model(modis_utils_obj):
         crop_size = modis_utils_obj._crop_size
         input_timesteps = modis_utils_obj._input_timesteps
         output_timesteps = modis_utils_obj._output_timesteps
         compile_params = modis_utils_obj._compile_params
+        weights = modis_utils_obj._pretrained
         return ResnetLSTMSingleOutput._create_model(
-            crop_size, crop_size, input_timesteps, compile_params)
+            crop_size, crop_size, input_timesteps, compile_params, weights)
     
-    def _create_model(img_height, img_width, input_timesteps, compile_params, weights=None):
+    def _create_model(img_height, img_width, input_timesteps, compile_params, weights):
+        if weights == True:
+            weights = 'imagenet'
+            channels = 3
+        else:
+            weights = None
+            channels = 1
         # Prepair
-        input_shape = (input_timesteps, img_height, img_width, 1)
+        input_shape = (input_timesteps, img_height, img_width, channels)
 
         # Model architecture
         source = Input(
@@ -73,6 +80,8 @@ class ResnetLSTMSingleOutput:
         file_path = modis_utils_obj._data_files[data_type]['data']
         data_test = get_data_test(file_path, idx)
         data_test = np.expand_dims(np.expand_dims(data_test, axis=0), axis=-1)
+        if modis_utils_obj._pretrained:
+            data_test = np.tile(data_test, 3)
         output = modis_utils_obj.inference_model.predict(data_test)
         output = np.squeeze(np.squeeze(output, axis=0), axis=-1)
         return output
