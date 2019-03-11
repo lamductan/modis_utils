@@ -44,7 +44,8 @@ class ModisUtils:
                  monitor=None,
                  monitor_mode='min',
                  resize_input=None,
-                 pretrained=False):
+                 pretrained=False,
+                 lr_reducer=None):
         # Define parameters
         self._modis_product = modis_product
         self._reservoir_index = reservoir_index
@@ -64,6 +65,7 @@ class ModisUtils:
         self._pretrained = pretrained
         if self._pretrained:
             assert self._crop_size == 224
+        self._lr_reducer = lr_reducer
 
         if self._crop_size == -1:
             self._n_samples = 1
@@ -292,7 +294,8 @@ class ModisUtils:
         self._csv_logger = CSVLogger(os.path.join(
             self._weights_dir, 'log.csv'), append=True, separator=';')
         self._callbacks_list = [self._checkpoint, self._csv_logger]
-            
+        if self._lr_reducer:
+            self._callbacks_list = [self._lr_reducer] + self._callbacks_list    
 
     def train(self, epochs=50, TPU_WORKER=None):
         if self._TPU_FLAG and TPU_WORKER is not None:
