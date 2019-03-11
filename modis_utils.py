@@ -290,7 +290,7 @@ class ModisUtils:
             os.makedirs(self._weights_dir)
         self._filepath = os.path.join(self._weights_dir, "weights-{epoch:02d}.h5")
         self._checkpoint = ModelCheckpoint(
-            self._filepath, monitor=self._monitor, mode=self._monitor_mode, verbose=1)
+            self._filepath, monitor=self._monitor, mode=self._monitor_mode, verbose=1, period=5)
         self._csv_logger = CSVLogger(os.path.join(
             self._weights_dir, 'log.csv'), append=True, separator=';')
         self._callbacks_list = [self._checkpoint, self._csv_logger]
