@@ -67,7 +67,10 @@ class Vgg16LSTMSingleOutput:
         net = BatchNormalization()(net)
         #net = Reshape(target_shape=(64, 64, 1))(net)
         
-        vgg16_decoder = net
+        vgg16_decoder = resnet_up(net, scale=4)
+        vgg16_decoder = BatchNormalization()(vgg16_decoder)
+        vgg16_decoder = resnet_up(vgg16_decoder, scale=4)
+        vgg16_decoder = BatchNormalization()(vgg16_decoder)
         predicted_img = Activation('sigmoid')(vgg16_decoder)
         
         model = Model(inputs=[source], outputs=[predicted_img])
@@ -256,7 +259,7 @@ def vgg16_encoder(input_shape, weights=None):
     inputs = Input(shape=input_shape)
     vgg16_encoder = VGG16(include_top=False, weights=weights, input_shape=input_shape)(inputs)
     vgg16_encoder = Flatten()(vgg16_encoder)
-    encode_shape = (input_shape[0], input_shape[1])
+    encode_shape = (input_shape[0]//16, input_shape[1]//16)
     vgg16_encoder = Dense(encode_shape[0]*encode_shape[1])(vgg16_encoder)
     vgg16_encoder = Reshape(target_shape=(encode_shape[0], encode_shape[1], 1))(vgg16_encoder)
     model = Model(inputs, vgg16_encoder, name='vgg16_encoder')
@@ -264,3 +267,38 @@ def vgg16_encoder(input_shape, weights=None):
         for layer in model.layers[:-3]:
             layer.trainable = False
     return model
+
+
+##
+def conv_block_1(inputs, filters, kernel_size, strides=(1,1), padding="same", activation='relu'):
+    x = Conv2D(filters, kernel_size, strides=strides, padding=padding)(inputs)
+    x = BatchNormalization()(x)
+    if activation:
+        x = Activation(activation)(x)
+    return x
+
+def up_block(inputs, filters, kernel_size, strides=(1,1), scale=2, padding="same", activation="relu"):
+    size = (scale,scale)
+    x = UpSampling2D(size)(inputs)
+    x = Conv2D(filters, kernel_size, strides=strides, padding=padding)(x)
+    x = BatchNormalization()(x)
+    x = Activation(activation)(x)
+    return x
+
+def res_block(inputs, filters=64):
+    x = conv_block_1(inputs, filters, (3,3))
+    x = conv_block_1(x, filters, (3,3), activation=False)
+    return Add()([x, inputs])
+
+
+##
+## Resnet batchnorm w/ NN upsampling
+##
+
+def resnet_up(inputs, scale=4):
+    x = conv_block_1(inputs, 64, (9,9))
+    for i in range(2): x = res_block(x)
+    x = up_block(x, 64, (3, 3), scale=scale / 2)
+    x = up_block(x, 64, (3, 3), scale=scale / 2)
+    out = Conv2D(1, (9,9), activation='relu', padding='same')(x)
+    return out
