@@ -346,13 +346,14 @@ def resnet_encoder(input_shape, weights=None):
     inputs = Input(shape=input_shape)
     resnet_encoder = ResNet50(include_top=False, weights=weights, input_shape=input_shape)(inputs)
     resnet_encoder = Flatten()(resnet_encoder)
-    resnet_encoder = Dense(input_shape[0]*input_shape[1])(resnet_encoder)
-    resnet_encoder = Reshape(target_shape=(input_shape[0], input_shape[1], 1))(resnet_encoder)
+    encode_shape = (input_shape[0]//4, input_shape[1]//4)
+    resnet_encoder = Dense(encode_shape[0]*encode_shape[1])(resnet_encoder)
+    resnet_encoder = Reshape(target_shape=(encode_shape[0], encode_shape[1], 1))(resnet_encoder)
     model = Model(inputs, resnet_encoder, name='resnet_encoder')
     return model
 
 
-    ##
+##
 ## SR CNN
 ##
 def create_srcnn_model(input_shape, scale=4):
