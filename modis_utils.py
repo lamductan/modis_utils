@@ -2,13 +2,14 @@ import os
 import numpy as np
 from scipy import misc
 import shutil
+from datetime import datetime
 from shutil import make_archive
 from matplotlib import pyplot as plt
 
 import tensorflow as tf
 from tensorflow.python.keras import backend as K
 from tensorflow.python.keras.utils import plot_model
-from tensorflow.python.keras.callbacks import ModelCheckpoint
+from tensorflow.python.keras.callbacks import ModelCheckpoint, TensorBoard
 from tensorflow.python.keras.callbacks import LearningRateScheduler, CSVLogger
 
 from modis_utils.preprocessing.preprocess_strategy_context import PreprocessStrategyContext
@@ -295,7 +296,15 @@ class ModisUtils:
             self._weights_dir, 'log.csv'), append=True, separator=';')
         self._callbacks_list = [self._checkpoint, self._csv_logger]
         if self._lr_reducer:
-            self._callbacks_list = [self._lr_reducer] + self._callbacks_list    
+            self._callbacks_list = [self._lr_reducer] + self._callbacks_list
+
+        timestamps = datetime.now()
+        timestamps = str(timestamps)
+        timestamps = timestamps[:timestamps.find('.')]
+        timestamps = timestamps.replace(' ', '_')
+        tensorboard_logdir = 'logs/{}'.format(timestamps)
+        tensorboard = TensorBoard(log_dir=tensorboard_logdir)
+        self._callbacks_list.append(tensorboard)
 
     def train(self, epochs=50, TPU_WORKER=None):
         if self._TPU_FLAG and TPU_WORKER is not None:
